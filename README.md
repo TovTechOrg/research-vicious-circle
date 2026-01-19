@@ -2,6 +2,8 @@
 
 Research project analyzing the bidirectional relationship between socio-economic vulnerability and health outcomes in Israeli settlements.
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Gop41_eXF3MNas1PvyZIGATu6VbdoP-o?usp=sharing)
+
 ## Hypothesis
 
 **"Vicious Circle"**: Socio-economic vulnerability leads to higher disability rates, which in turn deepens poverty — creating a self-reinforcing cycle.
