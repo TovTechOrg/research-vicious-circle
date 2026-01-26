@@ -1,79 +1,114 @@
 # Vicious Circle Research
 
-Research project exploring correlations between **socio-economic vulnerability** and **health / disability outcomes** across Israeli settlements. The interactive HTML presentation in this repo is a *deliverable* that summarizes and visualizes the research results.
+**Research Question:** Is there a "vicious circle" between socio-economic vulnerability and disability in Israel?
 
-## Interactive Presentation (GitHub Pages)
+This project analyzes correlations between poverty indicators and health/disability outcomes across **278 Israeli settlements**, using administrative data from the National Insurance Institute (Bituach Leumi) and the Central Bureau of Statistics.
 
-- [Open the presentation](https://tovtechorg.github.io/research-vicious-circle/) (redirects to `presentation_main.html`)
+---
+
+## Live Presentation
+
+**[View Interactive Presentation](https://tovtechorg.github.io/research-vicious-circle/)**
+
+The presentation includes:
+- Interactive map of Israel (filter by SE cluster, disability rate, income support)
+- Social Index vs Health Index correlation (Spearman r = 0.57)
+- Resilience vs Distress analysis (outlier detection)
+- Intergenerational Trap visualization (adult vs child disability)
+- Detailed appendix with supporting correlations
+
+---
+
+## Key Findings
+
+| Finding | Description |
+|---------|-------------|
+| **Vicious Circle Confirmed** | Social vulnerability and disability rates are strongly correlated (r = 0.57) |
+| **Geography Matters** | Poverty in the periphery (North) is "more toxic" than poverty in the Center |
+| **Intergenerational Risk** | High adult disability often co-exists with high child disability in the same localities |
+| **Non-Linear Pattern** | Disability rates drop sharply only in the wealthiest quartile (Q4) |
+
+---
+
+## Data Sources
+
+| Source | Data | Period |
+|--------|------|--------|
+| **Bituach Leumi** | Benefit recipients by settlement (>2,000 residents) | December 2024 |
+| **CBS (LAMAS)** | Socio-Economic Index (cluster & score) | 2021 |
+| **CBS (LAMAS)** | Peripherality Index (cluster & score) | 2020 |
+
+---
+
+## Methodology
+
+### Social Index (X-axis)
+Measures socio-economic vulnerability (higher = more vulnerable):
+- 50% — Socio-Economic Score (inverted)
+- 25% — Peripherality Index (inverted)
+- 25% — Income Support Rate
+
+### Health Index (Y-axis)
+Measures disability burden (higher = worse health):
+- 50% — General Disability Rate
+- 25% — Special Services Disability Rate
+- 25% — Mobility Disability Rate
+
+Both indices are standardized and normalized to [0, 1].
+
+---
+
+## Project Structure
+
+```
+research-vicious-circle/
+├── index.html                         # Redirect to presentation
+├── presentation_main.html             # Interactive HTML presentation
+├── generate_presentation_insights.py  # Script to regenerate presentation
+├── research_vicious_circle (8).ipynb  # Main analysis notebook
+├── vicious_circle_clustering.ipynb    # Clustering analysis
+├── datas_for_research_vicious_circle_project/
+│   ├── benefits_2024_12.xlsx          # Bituach Leumi data
+│   ├── p_libud_23.xlsx                # CBS socio-economic data
+│   └── ...                            # Additional data files
+└── README.md
+```
+
+---
 
 ## Notebooks
 
-- `research_vicious_circle (8).ipynb` — main analysis notebook (plots + insights)
-- `vicious_circle_clustering.ipynb` — exploratory clustering / supporting analysis
+### Main Analysis
+**`research_vicious_circle (8).ipynb`** — Full analysis pipeline with visualizations
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Gop41_eXF3MNas1PvyZIGATu6VbdoP-o?usp=sharing)
 
-## What’s Inside (Presentation)
+### Clustering Analysis
+**`vicious_circle_clustering.ipynb`** — K-Means clustering and exploratory analysis
 
-- Interactive map of Israel with a dropdown (Socio‑Economic Cluster / General Disability Rate / Income Support Rate)
-- Composite **Social Index** vs **Health Index** correlation (Spearman shown on slide)
-- Residuals / outliers (“Resilience vs. Distress”) to highlight “break-the-rules” localities
-- Spearman correlation heatmap between key social & health indicators
-- “Intergenerational Trap” (adult disability vs child disability) with a Red Zone defined by national weighted averages
-- Appendix section with additional supporting correlations
-
-## Summary Findings (High Level)
-
-- Social vulnerability and disability severity move together across localities (composite indices show a clear monotonic relationship).
-- Residual analysis highlights localities with “excess disability” vs. “resilience” relative to the model (potential regional hubs vs. strong community buffers).
-- The intergenerational pattern suggests a risk of a self‑reinforcing cycle where high adult disability co‑exists with high child disability in the same places.
-- Disability rates by socio‑economic quartile are **non‑linear**: the highest quartile drops sharply compared to the lower three quartiles (for settlements >10k).
-
-## Data Sources (Unified Dataset)
-
-- **National Insurance Institute (Bituach Leumi)**: administrative records, benefit recipients in localities with **>2,000 residents** (current as of **December 2024**)
-- **Central Bureau of Statistics (CBS)**:
-  - Socio‑Economic Index (Cluster & Score, updated to **2021**)
-  - Peripherality Index (Cluster & Score, updated to **2020**)
-
-## Methodology (Core Indices)
-
-Both indices are normalized to **[-1, +1]** (Distress → Resilience).
-
-- **Social Index (X‑Axis)** (weighted):
-  - 50% Socio‑Economic Score (CBS)
-  - 25% Peripherality Index
-  - 25% Income Support Rate (inverted)
-- **Health Index (Y‑Axis)** (weighted, inverted so “higher = healthier”):
-  - 50% General Disability Rate
-  - 25% Special Services Disability Rate
-  - 25% Mobility Disability Rate
+---
 
 ## How to Update the Presentation
 
-The HTML is generated from the project data with the generator script:
-
-1) Update code/insights in `generate_presentation_insights.py`
-2) Regenerate:
-
 ```bash
+# Edit insights/code in the generator script
+# Then regenerate:
 python generate_presentation_insights.py
 ```
 
-This updates `presentation_main.html`. The `index.html` file redirects to it (so Pages opens the presentation by default).
+This updates `presentation_main.html`. Push to GitHub and the live site updates automatically.
 
-## Repository Layout
+---
 
-- `generate_presentation_insights.py` — main generator for the presentation
-- `presentation_main.html` — generated output (served by GitHub Pages)
-- `index.html` — redirect entrypoint for Pages
-- `datas_for_research_vicious_circle_project/` — project dataset files
+## Disclaimer
 
-## Notes / Disclaimer
+- This analysis shows **correlations**, not causality
+- Administrative data reflects **benefit registration patterns**, which may differ from actual health conditions
+- Access barriers and cultural factors affect who applies for benefits
 
-- The analysis highlights **correlations**; it does not prove causality.
-- Administrative records can reflect **access/registration patterns** as well as underlying conditions.
+---
 
 ## Links
 
-- [Task board (Kanban)](https://docs.google.com/spreadsheets/d/1v2XxbDu7Gwhqv4Y4Dbebmn-HpkJRhlU1/edit?usp=sharing)
+- [Live Presentation](https://tovtechorg.github.io/research-vicious-circle/)
+- [Project Kanban Board](https://docs.google.com/spreadsheets/d/1v2XxbDu7Gwhqv4Y4Dbebmn-HpkJRhlU1/edit?usp=sharing)
