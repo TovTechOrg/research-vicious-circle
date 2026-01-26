@@ -1,0 +1,27 @@
+# Data files - do not commit
+datas_for_research_vicious_circle_project/
+
+# Local config files
+CLAUDE.md
+
+# Temp files
+tmpclaude-*
+*.tmp
+
+# Session/state files
+SESSION_STATE.md
+
+# Images (unless needed)
+image.png
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local exploratory notebooks (kept out of repo)
+vicious_circle_clustering.ipynb
