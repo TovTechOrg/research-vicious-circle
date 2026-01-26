@@ -14,27 +14,22 @@ This project explores correlations between poverty indicators and health/disabil
 
 ## What We Found
 
-### 1. Strong Correlation Between Poverty and Disability
+### 1. Strong Association (Social ↔ Health)
 - **Spearman r = 0.58** between composite Social Index and Health Index
-- The relationship is **monotonic** — as social vulnerability increases, disability rates increase
-- This holds across different types of disability (general, mobility, special services)
+- The relationship is **monotonic** — distressed localities (lower social scores) tend to align with worse health outcomes (lower health scores)
+- This is consistent across multiple disability indicators used inside the composite Health Index (general, mobility, special services)
 
-### 2. Geographic Disparity
-- **Poverty in the periphery is "more toxic"** than poverty in the center
-- Northern settlements show ~8% median disability rate vs ~5% in central areas at similar poverty levels
-- Lack of accessible healthcare and employment infrastructure in periphery exacerbates conditions
-
-### 3. Intergenerational Pattern
+### 2. Intergenerational Pattern
 - Localities with high **adult disability** (ages 18-64) often show high **child disability** (ages 0-17)
 - This suggests potential intergenerational transmission of disadvantage
 - "Red Zone" localities identified where both rates exceed national averages
 
-### 4. Non-Linear Relationship with Wealth
+### 3. Non-Linear Relationship with Wealth
 - Disability rates are similar across Q1-Q3 (poorest 75% of settlements)
 - Sharp drop only in Q4 (wealthiest quartile)
 - Suggests a **threshold effect** — benefits of wealth appear only at higher levels
 
-### 5. Outlier Analysis
+### 4. Outlier Analysis
 | Type | Examples | Explanation |
 |------|----------|-------------|
 | **"Service Magnets"** | Tiberias, Be'er Sheva | Regional hubs attract vulnerable populations seeking services; carry "regional burden" |
@@ -72,15 +67,17 @@ This project explores correlations between poverty indicators and health/disabil
 
 ### Composite Indices
 
-**Social Index** (higher = more vulnerable):
-- 50% — Socio-Economic Score (CBS, inverted)
-- 25% — Peripherality Index (inverted)
-- 25% — Income Support Rate
+Both indices are normalized to **[-1, +1]** (Distress → Resilience).
 
-**Health Index** (higher = worse health):
-- 50% — General Disability Rate
-- 25% — Special Services Disability Rate
-- 25% — Mobility Disability Rate
+**Social Index** (higher = more resilient / stronger socio-economic position):
+- 50% — Socio-Economic Score (CBS)
+- 25% — Peripherality Index
+- 25% — Income Support Rate (inverted)
+
+**Health Index** (higher = healthier / lower disability burden):
+- 50% — General Disability Rate (inverted)
+- 25% — Special Services Disability Rate (inverted)
+- 25% — Mobility Disability Rate (inverted)
 
 ---
 
@@ -101,20 +98,18 @@ research-vicious-circle/
 ├── index.html                         # Redirect to presentation
 ├── presentation_main.html             # Interactive HTML presentation
 ├── generate_presentation_insights.py  # Script to regenerate presentation
-├── research_vicious_circle (8).ipynb  # Main analysis notebook
+├── research_vicious_circle.ipynb      # Main analysis notebook
 ├── vicious_circle_clustering.ipynb    # Clustering analysis
-└── datas_for_research_vicious_circle_project/
-    ├── benefits_2024_12.xlsx          # Bituach Leumi data
-    ├── p_libud_23.xlsx                # CBS socio-economic data
-    └── ...                            # Additional data files
 ```
+
+> Note: raw data files are stored locally during development and are not necessarily committed to the repository.
 
 ---
 
 ## Notebooks
 
 ### Main Analysis
-**`research_vicious_circle (8).ipynb`** — Full analysis pipeline with visualizations
+**`research_vicious_circle.ipynb`** — Full analysis pipeline with visualizations
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Gop41_eXF3MNas1PvyZIGATu6VbdoP-o?usp=sharing)
 
