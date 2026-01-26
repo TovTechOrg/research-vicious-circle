@@ -99,7 +99,6 @@ research-vicious-circle/
 ├── presentation_main.html             # Interactive HTML presentation
 ├── generate_presentation_insights.py  # Script to regenerate presentation
 ├── research_vicious_circle.ipynb      # Main analysis notebook
-├── vicious_circle_clustering.ipynb    # Clustering analysis
 ```
 
 > Note: raw data files are stored locally during development and are not necessarily committed to the repository.
@@ -114,7 +113,6 @@ research-vicious-circle/
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Gop41_eXF3MNas1PvyZIGATu6VbdoP-o?usp=sharing)
 
 ### Clustering Analysis
-**`vicious_circle_clustering.ipynb`** — K-Means clustering and exploratory analysis
 
 ---
 
