@@ -18,6 +18,13 @@ The presentation includes (among others):
 - “Intergenerational Trap” (adult disability vs child disability) with a Red Zone defined by national weighted averages
 - Appendix section with additional supporting correlations
 
+## High‑Level Findings (From the Slides)
+
+- Social vulnerability and disability severity move together across localities (composite indices show a clear monotonic relationship).
+- Residual analysis highlights localities with “excess disability” vs. “resilience” relative to the model (potential regional hubs vs. strong community buffers).
+- The intergenerational pattern suggests a risk of a self‑reinforcing cycle where high adult disability co‑exists with high child disability in the same places.
+- Disability rates by socio‑economic quartile are **non‑linear**: the highest quartile drops sharply compared to the lower three quartiles (for settlements >10k).
+
 ## Data Sources (Unified Dataset)
 
 - **National Insurance Institute (Bituach Leumi)**: administrative records, benefit recipients in localities with **>2,000 residents** (current as of **December 2024**)
