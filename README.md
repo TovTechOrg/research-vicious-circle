@@ -1,15 +1,19 @@
 # Vicious Circle Research
 
-An interactive HTML presentation that explores correlations between **socio-economic vulnerability** and **health / disability outcomes** across Israeli settlements.
+Research project exploring correlations between **socio-economic vulnerability** and **health / disability outcomes** across Israeli settlements. The interactive HTML presentation in this repo is a *deliverable* that summarizes and visualizes the research results.
 
-## Live Presentation (GitHub Pages)
+## Interactive Presentation (GitHub Pages)
 
-- Main URL: https://tovtechorg.github.io/research-vicious-circle/
-- Direct file: https://tovtechorg.github.io/research-vicious-circle/presentation_main.html
+- [Open the presentation](https://tovtechorg.github.io/research-vicious-circle/) (redirects to `presentation_main.html`)
 
-## What’s Inside
+## Notebooks
 
-The presentation includes (among others):
+- `research_vicious_circle (8).ipynb` — main analysis notebook (plots + insights)
+- `vicious_circle_clustering.ipynb` — exploratory clustering / supporting analysis
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1Gop41_eXF3MNas1PvyZIGATu6VbdoP-o?usp=sharing)
+
+## What’s Inside (Presentation)
 
 - Interactive map of Israel with a dropdown (Socio‑Economic Cluster / General Disability Rate / Income Support Rate)
 - Composite **Social Index** vs **Health Index** correlation (Spearman shown on slide)
@@ -18,7 +22,7 @@ The presentation includes (among others):
 - “Intergenerational Trap” (adult disability vs child disability) with a Red Zone defined by national weighted averages
 - Appendix section with additional supporting correlations
 
-## High‑Level Findings (From the Slides)
+## Summary Findings (High Level)
 
 - Social vulnerability and disability severity move together across localities (composite indices show a clear monotonic relationship).
 - Residual analysis highlights localities with “excess disability” vs. “resilience” relative to the model (potential regional hubs vs. strong community buffers).
@@ -72,4 +76,4 @@ This updates `presentation_main.html`. The `index.html` file redirects to it (so
 
 ## Links
 
-- Task Board (Kanban): https://docs.google.com/spreadsheets/d/1v2XxbDu7Gwhqv4Y4Dbebmn-HpkJRhlU1/edit?usp=sharing
+- [Task board (Kanban)](https://docs.google.com/spreadsheets/d/1v2XxbDu7Gwhqv4Y4Dbebmn-HpkJRhlU1/edit?usp=sharing)
