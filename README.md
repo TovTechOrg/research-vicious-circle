@@ -134,7 +134,19 @@ This regenerates `presentation_main.html`. Push to GitHub and the live site upda
 
 ---
 
+## Phase 2: Additional Data Collection
+
+Phase 1 (correlation analysis) is complete. We are now collecting additional data to deepen the analysis.
+
+**Data Sources:**
+- [Phase 2 Data Collection Spreadsheet](https://docs.google.com/spreadsheets/d/19G-GOPbrKtfNGO_dl_m944ULK2tldN9S/edit?usp=sharing)
+- [IDI Haredi Sector Data 2023](https://www.idi.org.il/haredi/2023/?chapter=51973#excel)
+
+---
+
 ## Links
 
 - [Live Presentation](https://tovtechorg.github.io/research-vicious-circle/)
 - [Project Kanban Board](https://docs.google.com/spreadsheets/d/1v2XxbDu7Gwhqv4Y4Dbebmn-HpkJRhlU1/edit?usp=sharing)
+- [Phase 2 Data](https://docs.google.com/spreadsheets/d/19G-GOPbrKtfNGO_dl_m944ULK2tldN9S/edit?usp=sharing)
+- [IDI Haredi Data 2023](https://www.idi.org.il/haredi/2023/?chapter=51973#excel)
