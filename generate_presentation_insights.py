@@ -16,7 +16,8 @@ import plotly.express as px
 
 warnings.filterwarnings("ignore")
 
-BASE_PATH = Path("datas_for_research_vicious_circle_project")
+PROJECT_ROOT = Path(__file__).resolve().parent
+BASE_PATH = PROJECT_ROOT / "datas_for_research_vicious_circle_project"
 
 
 def standardize(df: pd.DataFrame) -> np.ndarray:
@@ -2918,6 +2919,6 @@ js_blocks.append("""
 js_content = "\n".join(js_blocks)
 html_content = f"{html_head}{slides_html}{nav_html}{js_content}{html_tail}"
 
-output_path = Path("presentation_main.html")
+output_path = PROJECT_ROOT / "presentation_main.html"
 output_path.write_text(html_content, encoding="utf-8")
 print(f"Presentation saved to: {output_path}")

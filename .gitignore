@@ -3,6 +3,7 @@ datas_for_research_vicious_circle_project/
 
 # Local config files
 CLAUDE.md
+.vscode/
 
 # Temp files
 tmpclaude-*
@@ -25,3 +26,9 @@ Thumbs.db
 
 # Local exploratory notebooks (kept out of repo)
 vicious_circle_clustering.ipynb
+
+# Local scratch / artifacts (not part of repo)
+local/
+~$*.xlsx
+haredi_local_authorities_economic_development_lamas*.xlsx
+haredi_local_authorities_economic_development_lamas*.pdf
