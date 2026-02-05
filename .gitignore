@@ -1,6 +1,9 @@
 # Data files - do not commit
 datas_for_research_vicious_circle_project/
 
+# Large/raw local files sometimes copied to repo root
+p_libud_23.xlsx
+
 # Local config files
 CLAUDE.md
 .vscode/
@@ -26,6 +29,9 @@ Thumbs.db
 
 # Local exploratory notebooks (kept out of repo)
 vicious_circle_clustering.ipynb
+Copy_of_research_vicious_circle.ipynb
+Untitled
+education_from_p_libud_23_columns_txt
 
 # Local scratch / artifacts (not part of repo)
 local/

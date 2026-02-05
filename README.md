@@ -79,6 +79,36 @@ Tracked (in GitHub):
 - `generate_presentation_insights.py` — generator script (builds `presentation_main.html`)
 - `research_vicious_circle.ipynb` — main analysis notebook
 
+## Setup (for running scripts)
+
+```bash
+python -m venv .venv
+```
+
+Activate:
+- Windows PowerShell: `.venv\Scripts\Activate.ps1`
+- macOS/Linux: `source .venv/bin/activate`
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Google Colab (quick run)
+
+If you want to run the pipeline in Google Colab, upload:
+- `build_master_dataset.py`
+- `requirements.txt` (optional)
+- `datas_for_research_vicious_circle_project/` (the raw data folder)
+
+Then run in a single cell:
+
+```python
+!pip -q install -r requirements.txt
+!python build_master_dataset.py
+```
+
 Local-only (gitignored):
 - `datas_for_research_vicious_circle_project/` — raw input data files
 - `local/` — scratch/legacy/diagnostics and temporary artifacts
@@ -91,6 +121,111 @@ python generate_presentation_insights.py
 ```
 
 This regenerates `presentation_main.html`. Push to GitHub and the live site updates automatically.
+
+## How to Extract Education CSV (Standalone)
+
+Extract education indicators from `p_libud_23.xlsx` into a standalone CSV (no merge with benefits / main dataset):
+
+```bash
+python extract_education_from_p_libud_23.py
+```
+
+Output (recommended columns): `datas_for_research_vicious_circle_project/education_from_p_libud_23.csv`
+
+To export the full set of education attainment columns:
+
+```bash
+python extract_education_from_p_libud_23.py --all-columns
+```
+
+Output: `datas_for_research_vicious_circle_project/education_from_p_libud_23_full.csv`
+
+Google Sheets locale tip: if your Sheets locale does not auto-split comma-separated CSVs, use:
+
+```bash
+python extract_education_from_p_libud_23.py --google-sheets
+```
+
+Output: `datas_for_research_vicious_circle_project/education_from_p_libud_23_google_sheets.csv`
+
+If you prefer uploading an Excel file to Google Sheets, use:
+
+```bash
+python extract_education_from_p_libud_23.py --excel
+```
+
+Output: `datas_for_research_vicious_circle_project/education_from_p_libud_23_google_sheets.xlsx`
+
+## How to Build the Master Dataset (benefits_final)
+
+Build a single settlement-level table by combining Bituach Leumi benefits with CBS indices, coordinates, demographics and
+education:
+
+```bash
+python build_master_dataset.py
+```
+
+To also save an Excel file (easy to inspect/share):
+
+```bash
+python build_master_dataset.py --excel
+```
+
+If you don't need the `.pkl` output:
+
+```bash
+python build_master_dataset.py --no-pkl
+```
+
+If your raw files live in a different folder (e.g., Google Drive / another machine), point the script to it:
+
+```bash
+python build_master_dataset.py --data-dir /path/to/datas_for_research_vicious_circle_project
+```
+
+You can also override individual inputs (example: different education file):
+
+```bash
+python build_master_dataset.py --education /path/to/education_from_p_libud_23.csv
+```
+
+Other override flags exist too (e.g. `--benefits`, `--lamas`, `--coordinates`, etc.) — run:
+
+```bash
+python build_master_dataset.py -h
+```
+
+Outputs (gitignored, local-only):
+- `datas_for_research_vicious_circle_project/data/processed/benefits_final.csv`
+- `datas_for_research_vicious_circle_project/data/processed/benefits_final.pkl`
+
+From a notebook:
+
+```python
+from build_master_dataset import build_master_dataset
+
+data_master = build_master_dataset(save=True)
+```
+
+Notebook tip: for non-standard paths, use:
+
+```python
+data_master = build_master_dataset(
+    data_dir="/path/to/datas_for_research_vicious_circle_project",
+    paths={"education": "/path/to/education_from_p_libud_23.csv"},
+    save=True,
+)
+```
+
+## Education Presentation
+
+Generate an education-only interactive presentation:
+
+```bash
+python generate_education_presentation.py
+```
+
+Output: `presentation_education.html`
 
 ## Phase 2: Additional Data Collection
 
