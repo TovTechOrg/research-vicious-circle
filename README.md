@@ -78,76 +78,30 @@ Tracked (in GitHub):
 - `index.html` — redirect entrypoint
 - `generate_presentation_insights.py` — generator script (builds `presentation_main.html`)
 - `research_vicious_circle.ipynb` — main analysis notebook
+- `build_master_dataset.py` — builds the master dataset table
+- `requirements.txt` — Python dependencies for scripts
 
 ## Google Colab (quick run)
 
-If you want to run the pipeline in Google Colab, upload:
+Upload into the Colab workspace (`/content`):
 - `build_master_dataset.py`
-- `requirements.txt` (optional)
-- `datas_for_research_vicious_circle_project/` (the raw data folder)
+- `datas_for_research_vicious_circle_project/` (the raw data folder with the `.xlsx/.csv` inputs inside)
 
-Then run in a single cell:
+Then paste into **one cell** and run:
 
 ```python
-!pip -q install -r requirements.txt
+!pip -q install pandas numpy openpyxl plotly
 !python build_master_dataset.py
 ```
 
-Local-only (gitignored):
-- `datas_for_research_vicious_circle_project/` — raw input data files
-- `local/` — scratch/legacy/diagnostics and temporary artifacts
-- `.vscode/` — editor settings
-
-## How to Update the Presentation
-
-```bash
-python generate_presentation_insights.py
-```
-
-This regenerates `presentation_main.html`. Push to GitHub and the live site updates automatically.
-
-## How to Build the Master Dataset (benefits_final)
-
-Build a single settlement-level table by combining Bituach Leumi benefits with CBS indices, coordinates and demographics:
-
-```bash
-python build_master_dataset.py
-```
-
-To also save an Excel file (easy to inspect/share):
-
-```bash
-python build_master_dataset.py --excel
-```
-
-If you don't need the `.pkl` output:
-
-```bash
-python build_master_dataset.py --no-pkl
-```
-
-If your raw files live in a different folder (e.g., Google Drive / another machine), point the script to it:
-
-```bash
-python build_master_dataset.py --data-dir /path/to/datas_for_research_vicious_circle_project
-```
-
-Other override flags exist too (e.g. `--benefits`, `--lamas`, `--coordinates`, etc.) — run:
-
-```bash
-python build_master_dataset.py -h
-```
-
-Outputs (gitignored, local-only):
+Output files will be created here:
 - `datas_for_research_vicious_circle_project/data/processed/benefits_final.csv`
-- `datas_for_research_vicious_circle_project/data/processed/benefits_final.pkl`
+- `datas_for_research_vicious_circle_project/data/processed/benefits_final.xlsx` (only if you run with `--excel`)
 
-From a notebook:
+Tip: if you want an Excel file too (easy to view/download from Colab):
 
 ```python
-from build_master_dataset import build_master_dataset
-
-data_master = build_master_dataset(save=True)
+!python build_master_dataset.py --excel --no-pkl
 ```
 
 ## Phase 2: Additional Data Collection
