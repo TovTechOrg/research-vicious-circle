@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 """
-Build the project's "master" settlement-level dataset (benefits + CBS indices + geography + demographics + education).
+Build the project's "master" settlement-level dataset (benefits + CBS indices + geography + demographics).
 
 This script extracts/cleans multiple raw inputs from `datas_for_research_vicious_circle_project/` and produces a single
 table that can be used by notebooks/presentations.
@@ -38,13 +38,6 @@ def resolve_data_dir(cli_data_dir: str | None) -> Path:
 
 
 def default_paths(data_dir: Path) -> dict[str, Path]:
-    education_candidates = [
-        data_dir / "education_from_p_libud_23.xlsx",
-        data_dir / "education_from_p_libud_23.csv",
-        data_dir / "education_from_p_libud_23_google_sheets.xlsx",
-        data_dir / "education_from_p_libud_23_google_sheets.csv",
-    ]
-    education_path = next((p for p in education_candidates if p.exists()), education_candidates[0])
     return {
         "benefits": data_dir / "benefits_2024_12.xlsx",
         "lamas": data_dir / "p_libud_23.xlsx",
@@ -55,7 +48,6 @@ def default_paths(data_dir: Path) -> dict[str, Path]:
         "haredi_population": data_dir / "The_Haredi_population.xlsx",
         "haredi_population2020": data_dir / "haredi_local_authorities_economic_development_lamas_fixed.xlsx",
         "average_salary": data_dir / "average_monthly_salary.xlsx",
-        "education": education_path,
     }
 
 
@@ -194,12 +186,6 @@ def load_average_salary(path: Path) -> pd.DataFrame:
     return df
 
 
-def load_education(path: Path) -> pd.DataFrame:
-    if path.suffix.lower() == ".csv":
-        return pd.read_csv(path, encoding="utf-8-sig")
-    return pd.read_excel(path)
-
-
 def merge_lamas(df_benefits: pd.DataFrame, df_lamas: pd.DataFrame) -> pd.DataFrame:
     before = len(df_benefits)
     df = df_benefits.merge(
@@ -311,28 +297,6 @@ def merge_average_salary(df_main: pd.DataFrame, df_salary: pd.DataFrame) -> pd.D
     return df
 
 
-def merge_education(df_main: pd.DataFrame, df_education: pd.DataFrame) -> pd.DataFrame:
-    before = len(df_main)
-    df = df_main.merge(
-        df_education[
-            [
-                "settlement_symbol",
-                "edu_dropout_pct",
-                "edu_bagrut_eligibility_pct",
-                "edu_bagrut_uni_req_pct",
-                "edu_higher_ed_entry_within_8y_pct",
-                "edu_attain_pct_no_info",
-                "edu_attain_pct_academic_degree",
-                "edu_attain_pct_bagrut_or_higher",
-            ]
-        ],
-        on="settlement_symbol",
-        how="left",
-    )
-    assert len(df) == before, f"Lost rows in education merge (before={before}, after={len(df)})"
-    return df
-
-
 def clean_values(df: pd.DataFrame) -> pd.DataFrame:
     df = df.dropna(
         subset=[
@@ -372,13 +336,6 @@ def clean_values(df: pd.DataFrame) -> pd.DataFrame:
         "haredi_population_percentage",
         "jewish_non_haredi_population_percentage",
         "average_monthly_salary_2023",
-        "edu_dropout_pct",
-        "edu_bagrut_eligibility_pct",
-        "edu_bagrut_uni_req_pct",
-        "edu_higher_ed_entry_within_8y_pct",
-        "edu_attain_pct_no_info",
-        "edu_attain_pct_academic_degree",
-        "edu_attain_pct_bagrut_or_higher",
     ]
     percentage_cols = ["jewish_population_percentage", "arab_population_percentage", "haredi_population_percentage"]
 
@@ -474,7 +431,6 @@ def build_master_dataset(
         "haredi_population",
         "haredi_population2020",
         "average_salary",
-        "education",
     ]
     for key in required_keys:
         require_path(base_paths[key], key=key)
@@ -494,7 +450,6 @@ def build_master_dataset(
     df_haredi_2023 = load_haredi_2023(base_paths["haredi_population"])
     df_haredi_2020 = load_haredi_2020(base_paths["haredi_population2020"])
     df_salary = load_average_salary(base_paths["average_salary"])
-    df_education = load_education(base_paths["education"])
 
     data_master = merge_lamas(df_benefits, df_lamas)
     data_master = merge_index_from_regional(
@@ -512,7 +467,6 @@ def build_master_dataset(
     data_master = merge_haredi_2023(data_master, df_haredi_2023)
     data_master = merge_haredi_2020(data_master, df_haredi_2020)
     data_master = merge_average_salary(data_master, df_salary)
-    data_master = merge_education(data_master, df_education)
     data_master = clean_values(data_master)
 
     if verbose:
@@ -532,7 +486,7 @@ def build_master_dataset(
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Build the master dataset (benefits + indices + demographics + education).")
+    p = argparse.ArgumentParser(description="Build the master dataset (benefits + indices + demographics).")
     p.add_argument(
         "--data-dir",
         default=None,
@@ -589,11 +543,6 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=None,
         help="Override path to average salary Excel (average_monthly_salary.xlsx)",
     )
-    p.add_argument(
-        "--education",
-        default=None,
-        help="Override path to education file (education_from_p_libud_23.xlsx or .csv)",
-    )
     return p
 
 
@@ -610,7 +559,6 @@ def main() -> int:
         "haredi_population",
         "haredi_population2020",
         "average_salary",
-        "education",
     ]:
         val = getattr(args, key, None)
         if val:

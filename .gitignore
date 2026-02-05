@@ -33,6 +33,15 @@ Copy_of_research_vicious_circle.ipynb
 Untitled
 education_from_p_libud_23_columns_txt
 
+# Education artifacts (kept local only)
+extract_education_from_p_libud_23.py
+generate_education_charts.py
+generate_education_presentation.py
+presentation_education.html
+education_from_p_libud_23_columns.md
+education_from_p_libud_23_columns_en.md
+education_from_p_libud_23_columns_he.md
+
 # Local scratch / artifacts (not part of repo)
 local/
 ~$*.xlsx
