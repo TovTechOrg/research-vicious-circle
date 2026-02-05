@@ -19,6 +19,7 @@ import argparse
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -101,9 +102,26 @@ def load_lamas(path: Path) -> pd.DataFrame:
             251: "socio_economic_index_score",
             256: "peripherality_index_cluster",
             257: "peripherality_index_score",
+            190: "edu_attain_pct_postsecondary_nonacademic",
         },
         inplace=True,
     )
+
+    if "edu_attain_pct_postsecondary_nonacademic" in df.columns:
+        s = df["edu_attain_pct_postsecondary_nonacademic"]
+
+        def normalize_token(val: object) -> object:
+            if isinstance(val, str):
+                token = val.strip()
+                if token in ("..", ".", "-"):
+                    return np.nan
+                return token
+            return val
+
+        df["edu_attain_pct_postsecondary_nonacademic"] = pd.to_numeric(
+            s.map(normalize_token),
+            errors="coerce",
+        )
     return df
 
 
@@ -196,6 +214,7 @@ def merge_lamas(df_benefits: pd.DataFrame, df_lamas: pd.DataFrame) -> pd.DataFra
                 "socio_economic_index_score",
                 "peripherality_index_cluster",
                 "peripherality_index_score",
+                "edu_attain_pct_postsecondary_nonacademic",
             ]
         ],
         on="settlement_symbol",
@@ -336,6 +355,7 @@ def clean_values(df: pd.DataFrame) -> pd.DataFrame:
         "haredi_population_percentage",
         "jewish_non_haredi_population_percentage",
         "average_monthly_salary_2023",
+        "edu_attain_pct_postsecondary_nonacademic",
     ]
     percentage_cols = ["jewish_population_percentage", "arab_population_percentage", "haredi_population_percentage"]
 
