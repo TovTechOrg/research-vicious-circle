@@ -91,17 +91,27 @@ Then paste into **one cell** and run:
 
 ```python
 !pip -q install pandas numpy openpyxl plotly
-!python build_master_dataset.py
+
+from pathlib import Path
+from build_master_dataset import build_master_dataset
+
+# Path to the folder that contains the raw files (xlsx/csv)
+DATA_DIR = Path("datas_for_research_vicious_circle_project").resolve()
+print("DATA_DIR =", DATA_DIR)
+
+# Build (and save outputs into DATA_DIR / data / processed)
+data_master = build_master_dataset(data_dir=DATA_DIR, save=True, verbose=True)
+data_master.head()
 ```
 
-Output files will be created here:
+Outputs will be created here:
 - `datas_for_research_vicious_circle_project/data/processed/benefits_final.csv`
 - `datas_for_research_vicious_circle_project/data/processed/benefits_final.xlsx` (only if you run with `--excel`)
 
 Tip: if you want an Excel file too (easy to view/download from Colab):
 
 ```python
-!python build_master_dataset.py --excel --no-pkl
+data_master = build_master_dataset(data_dir=DATA_DIR, save=True, verbose=True, write_excel=True, write_pkl=False)
 ```
 
 ## Phase 2: Additional Data Collection
