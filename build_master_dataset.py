@@ -25,6 +25,25 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 
+def _normalize_edu_numeric(series: pd.Series, *, dash_as_zero: bool) -> pd.Series:
+    def normalize_token(val: object) -> object:
+        if isinstance(val, str):
+            token = val.strip()
+            if token in ("..", "."):
+                return np.nan
+            if token == "-":
+                return 0 if dash_as_zero else np.nan
+            return token
+        return val
+
+    return pd.to_numeric(series.map(normalize_token), errors="coerce")
+
+
+def _sum_with_nan_as_nan_if_all_missing(df: pd.DataFrame, cols: list[str]) -> pd.Series:
+    # min_count=1 => if all components are NaN, the result is NaN (not 0)
+    return df[cols].sum(axis=1, min_count=1)
+
+
 def resolve_data_dir(cli_data_dir: str | None) -> Path:
     if cli_data_dir:
         p = Path(cli_data_dir)
@@ -102,26 +121,74 @@ def load_lamas(path: Path) -> pd.DataFrame:
             251: "socio_economic_index_score",
             256: "peripherality_index_cluster",
             257: "peripherality_index_score",
+            # Education (CBS/LAMAS) — key columns we used in the notebook master
+            166: "edu_dropout_pct",
+            169: "edu_bagrut_eligibility_pct",
+            170: "edu_bagrut_uni_req_pct",
+            172: "edu_higher_ed_entry_within_8y_pct",
+            184: "edu_attain_pct_no_info",
+            189: "edu_attain_pct_highschool_bagrut",
             190: "edu_attain_pct_postsecondary_nonacademic",
+            191: "edu_attain_pct_ba",
+            192: "edu_attain_pct_ma",
+            193: "edu_attain_pct_phd",
         },
         inplace=True,
     )
 
-    if "edu_attain_pct_postsecondary_nonacademic" in df.columns:
-        s = df["edu_attain_pct_postsecondary_nonacademic"]
+    # Normalize education numeric columns (handle "..", ".", "-")
+    edu_dash_zero = {"edu_dropout_pct"}
+    edu_cols = [
+        "edu_dropout_pct",
+        "edu_bagrut_eligibility_pct",
+        "edu_bagrut_uni_req_pct",
+        "edu_higher_ed_entry_within_8y_pct",
+        "edu_attain_pct_no_info",
+        "edu_attain_pct_highschool_bagrut",
+        "edu_attain_pct_postsecondary_nonacademic",
+        "edu_attain_pct_ba",
+        "edu_attain_pct_ma",
+        "edu_attain_pct_phd",
+    ]
+    for col in edu_cols:
+        if col not in df.columns:
+            continue
+        df[col] = _normalize_edu_numeric(df[col], dash_as_zero=(col in edu_dash_zero))
 
-        def normalize_token(val: object) -> object:
-            if isinstance(val, str):
-                token = val.strip()
-                if token in ("..", ".", "-"):
-                    return np.nan
-                return token
-            return val
-
-        df["edu_attain_pct_postsecondary_nonacademic"] = pd.to_numeric(
-            s.map(normalize_token),
-            errors="coerce",
+    # Derived education aggregates (same logic as in the standalone extraction script)
+    if all(c in df.columns for c in ["edu_attain_pct_ba", "edu_attain_pct_ma", "edu_attain_pct_phd"]):
+        df["edu_attain_pct_academic_degree"] = _sum_with_nan_as_nan_if_all_missing(
+            df, ["edu_attain_pct_ba", "edu_attain_pct_ma", "edu_attain_pct_phd"]
         )
+
+    bagrut_bundle = [
+        "edu_attain_pct_highschool_bagrut",
+        "edu_attain_pct_postsecondary_nonacademic",
+        "edu_attain_pct_ba",
+        "edu_attain_pct_ma",
+        "edu_attain_pct_phd",
+    ]
+    if all(c in df.columns for c in bagrut_bundle):
+        df["edu_attain_pct_bagrut_or_higher"] = _sum_with_nan_as_nan_if_all_missing(df, bagrut_bundle)
+
+    # Keep only the columns that should participate in the master merge (avoids dragging the full LAMAS sheet along)
+    keep = [
+        "settlement_symbol",
+        "socio_economic_index_cluster",
+        "socio_economic_index_score",
+        "peripherality_index_cluster",
+        "peripherality_index_score",
+        "edu_dropout_pct",
+        "edu_bagrut_eligibility_pct",
+        "edu_bagrut_uni_req_pct",
+        "edu_higher_ed_entry_within_8y_pct",
+        "edu_attain_pct_no_info",
+        "edu_attain_pct_postsecondary_nonacademic",
+        "edu_attain_pct_academic_degree",
+        "edu_attain_pct_bagrut_or_higher",
+    ]
+    keep = [c for c in keep if c in df.columns]
+    df = df[keep].copy()
     return df
 
 
@@ -206,17 +273,28 @@ def load_average_salary(path: Path) -> pd.DataFrame:
 
 def merge_lamas(df_benefits: pd.DataFrame, df_lamas: pd.DataFrame) -> pd.DataFrame:
     before = len(df_benefits)
+    needed = [
+        "settlement_symbol",
+        "socio_economic_index_cluster",
+        "socio_economic_index_score",
+        "peripherality_index_cluster",
+        "peripherality_index_score",
+        "edu_dropout_pct",
+        "edu_bagrut_eligibility_pct",
+        "edu_bagrut_uni_req_pct",
+        "edu_higher_ed_entry_within_8y_pct",
+        "edu_attain_pct_no_info",
+        "edu_attain_pct_postsecondary_nonacademic",
+        "edu_attain_pct_academic_degree",
+        "edu_attain_pct_bagrut_or_higher",
+    ]
+    missing = [c for c in needed if c not in df_lamas.columns]
+    if missing:
+        raise KeyError(
+            "LAMAS dataframe is missing expected columns:\n" + "\n".join(f"- {c}" for c in missing)
+        )
     df = df_benefits.merge(
-        df_lamas[
-            [
-                "settlement_symbol",
-                "socio_economic_index_cluster",
-                "socio_economic_index_score",
-                "peripherality_index_cluster",
-                "peripherality_index_score",
-                "edu_attain_pct_postsecondary_nonacademic",
-            ]
-        ],
+        df_lamas[needed],
         on="settlement_symbol",
         how="left",
     )
@@ -355,7 +433,14 @@ def clean_values(df: pd.DataFrame) -> pd.DataFrame:
         "haredi_population_percentage",
         "jewish_non_haredi_population_percentage",
         "average_monthly_salary_2023",
+        "edu_dropout_pct",
+        "edu_bagrut_eligibility_pct",
+        "edu_bagrut_uni_req_pct",
+        "edu_higher_ed_entry_within_8y_pct",
+        "edu_attain_pct_no_info",
         "edu_attain_pct_postsecondary_nonacademic",
+        "edu_attain_pct_academic_degree",
+        "edu_attain_pct_bagrut_or_higher",
     ]
     percentage_cols = ["jewish_population_percentage", "arab_population_percentage", "haredi_population_percentage"]
 
