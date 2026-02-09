@@ -1,50 +1,28 @@
-# Data files - do not commit
+# Data (shared physically, not committed)
 datas_for_research_vicious_circle_project/
 
-# Large/raw local files sometimes copied to repo root
-p_libud_23.xlsx
-
-# Local config files
-CLAUDE.md
-.vscode/
-
-# Temp files
-tmpclaude-*
-*.tmp
-
-# Session/state files
-SESSION_STATE.md
-
-# Images (unless needed)
-image.png
+# Local scratch / legacy / education artifacts
+local/
 
 # Python
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
+# Editor / IDE
+.vscode/
+
 # OS files
 .DS_Store
 Thumbs.db
 
-# Local exploratory notebooks (kept out of repo)
-vicious_circle_clustering.ipynb
-Copy_of_research_vicious_circle.ipynb
-Untitled
-education_from_p_libud_23_columns_txt
-test.ipynb
-
-# Education artifacts (kept local only)
-extract_education_from_p_libud_23.py
-generate_education_charts.py
-generate_education_presentation.py
-presentation_education.html
-education_from_p_libud_23_columns.md
-education_from_p_libud_23_columns_en.md
-education_from_p_libud_23_columns_he.md
-
-# Local scratch / artifacts (not part of repo)
-local/
+# Temp files
+tmpclaude-*
+*.tmp
 ~$*.xlsx
-haredi_local_authorities_economic_development_lamas*.xlsx
-haredi_local_authorities_economic_development_lamas*.pdf
+
+# Project config (private)
+CLAUDE.md
+AGENTS.md
+SESSION_STATE.md
+image.png

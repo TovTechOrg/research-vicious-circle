@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 2: Beyond the Vicious Circle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b141b;
+      --bg-2: #102a3a;
+      --panel: rgba(255, 255, 255, 0.04);
+      --panel-strong: rgba(255, 255, 255, 0.08);
+      --accent: #ffb703;
+      --accent-2: #2ec4b6;
+      --danger: #ff6b6b;
+      --text: #e6edf3;
+      --muted: #9fb0c2;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: "IBM Plex Sans", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 10%, rgba(255, 183, 3, 0.15), transparent 42%),
+        radial-gradient(circle at 85% 18%, rgba(46, 196, 182, 0.18), transparent 40%),
+        linear-gradient(135deg, var(--bg), var(--bg-2));
+    }
+    h1, h2, h3, h4 {
+      font-family: "Space Grotesk", sans-serif;
+      letter-spacing: 0.2px;
+    }
+    h1 {
+      font-size: 2.6rem;
+      color: var(--accent);
+      text-align: center;
+    }
+    h2 {
+      font-size: 1.8rem;
+      text-align: center;
+      color: #f8f9fb;
+    }
+    h3 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: var(--accent-2);
+    }
+    h4 {
+      font-size: 1rem;
+      margin: 10px 0 6px;
+      color: var(--accent);
+    }
+    .slide {
+      min-height: 100vh;
+      padding: 48px 7vw 90px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      animation: fadeInUp 0.6s ease both;
+    }
+    .title-block {
+      text-align: center;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .subtitle {
+      font-size: 1.05rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .meta {
+      font-size: 0.95rem;
+      color: #c5d3e2;
+    }
+    .intro-lead {
+      max-width: 1600px;
+      margin: 24px auto 0;
+      padding: 28px 32px;
+      border-radius: 14px;
+      border: 1px solid var(--panel-strong);
+      background: linear-gradient(135deg, rgba(255, 183, 3, 0.16), rgba(46, 196, 182, 0.08));
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
+    }
+    .intro-lead p {
+      margin: 0;
+      font-size: 1.36rem;
+      line-height: 1.8;
+      font-weight: 500;
+      color: #e6edf3;
+    }
+    .chart-container {
+      width: 100%;
+      max-width: 1350px;
+      background: var(--panel);
+      border: 1px solid var(--panel-strong);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+    }
+    .chart-container.light {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+    .insight, .warning, .panel {
+      width: 100%;
+      max-width: 1350px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 1px solid var(--panel-strong);
+      background: var(--panel);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+    .insight {
+      border-left: 4px solid var(--accent-2);
+      background: rgba(46, 196, 182, 0.08);
+    }
+    .warning {
+      border-left: 4px solid var(--danger);
+      background: rgba(255, 107, 107, 0.12);
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    .data-table th, .data-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: left;
+    }
+    .data-table th {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    }
+    .nav {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+      background: rgba(8, 12, 18, 0.85);
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      z-index: 1000;
+    }
+    .nav a {
+      color: var(--accent);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      background: rgba(255, 183, 3, 0.1);
+    }
+    .nav a:hover {
+      background: rgba(255, 183, 3, 0.25);
+    }
+    .nav a.active {
+      background: var(--accent);
+      color: #0b141b;
+      font-weight: 700;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25) inset;
+    }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @media (max-width: 900px) {
+      .slide {
+        padding: 36px 6vw 90px;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+      h2 {
+        font-size: 1.4rem;
+      }
+      .chart-container {
+        padding: 12px;
+      }
+      .nav {
+        max-width: 92vw;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<section class="slide" id="slide1">
+  <div class="title-block">
+    <h1>Phase 2: Beyond the Vicious Circle</h1>
+    <p class="subtitle">Education, Income, and Demographics across 278 Israeli Settlements</p>
+    <p class="meta">Data: Bituach Leumi (Dec 2024) + CBS + LAMAS</p>
+    <div class="intro-lead">
+      <p>Phase 1 established the correlation between socio-economic vulnerability and disability
+      (Spearman r = 0.58). In Phase 2 we ask: <strong>what drives the vicious circle?</strong>
+      We add education levels, average salaries, and demographic composition (Arab %, Haredi %)
+      to understand which factors are independent predictors and which are proxies for the same
+      underlying signal.</p>
+    </div>
+  </div>
+  <div class="panel" style="max-width:700px;">
+    <h3>New Variables &amp; Coverage</h3>
+    <table class="data-table"><thead><tr><th>Variable</th><th>Available (n)</th><th>Coverage</th></tr></thead><tbody><tr><td>Academic Degree %</td><td>197</td><td>197/278</td></tr><tr><td>Average Monthly Salary</td><td>263</td><td>263/278</td></tr><tr><td>Arab Population %</td><td>278</td><td>278/278</td></tr><tr><td>Haredi Population %</td><td>278</td><td>278/278</td></tr><tr><td>General Disability Rate</td><td>278</td><td>278/278</td></tr><tr><td>Socio-Economic Score</td><td>278</td><td>278/278</td></tr></tbody></table>
+  </div>
+</section>
+<div class="divider"></div>
+
+
+<section class="slide" id="slide2">
+  <h2>Education &amp; Disability</h2>
+  <p class="subtitle">% with Academic Degree vs General Disability Rate | Spearman r = -0.59</p>
+  <div class="insight">
+    <h3>Key Finding</h3>
+    <p>Higher education correlates with lower disability rates (r = -0.59).
+    But is education a <em>cause</em> of better health, or a <em>consequence</em> of better
+    socio-economic conditions? Settlements with more graduates tend to be wealthier — so education
+    may be a proxy for the same structural advantage captured by the SE index.</p>
+  </div>
+  <div class="chart-container"><div id="graph_edu"></div></div>
+</section>
+<div class="divider"></div>
+
+
+<section class="slide" id="slide3">
+  <h2>Salary &amp; Disability</h2>
+  <p class="subtitle">Average Monthly Salary vs General Disability Rate | Spearman r = -0.60</p>
+  <div class="insight">
+    <h3>Key Finding</h3>
+    <p>Salary is almost perfectly correlated with the SE index (r = 0.94) — it is
+    essentially the <strong>same signal</strong>. This confirms that salary does not add independent
+    explanatory power: it is a component of socio-economic status, not a separate driver.</p>
+  </div>
+  <div class="chart-container"><div id="graph_salary"></div></div>
+</section>
+<div class="divider"></div>
+
+
+<section class="slide" id="slide4">
+  <h2>The Demographic Divide</h2>
+  <p class="subtitle">Arab Population % vs General Disability Rate | Spearman r = 0.58</p>
+  <div class="insight">
+    <h3>Key Finding</h3>
+    <p>Arab-majority settlements show higher disability rates — but is this ethnicity or poverty?
+    Arab settlements are disproportionately represented in low SE clusters.
+    The correlation (r = 0.58) may largely reflect the overlap between
+    Arab population concentration and structural disadvantage.</p>
+  </div>
+  <div class="chart-container"><div id="graph_arab"></div></div>
+</section>
+<div class="divider"></div>
+
+
+<section class="slide" id="slide5">
+  <h2>The Haredi Puzzle</h2>
+  <p class="subtitle">Haredi Population % vs General Disability Rate | Spearman r = 0.22</p>
+  <div class="insight">
+    <h3>Key Finding</h3>
+    <p>Haredi communities have <strong>low</strong> socio-economic scores but only
+    <strong>slightly</strong> elevated disability rates. They break the vicious circle pattern.
+    The weak correlation (r = 0.22) suggests that community-level factors
+    — social cohesion, family support networks, or different patterns of benefit claiming —
+    may buffer against the poverty-disability link observed in other populations.</p>
+  </div>
+  <div class="chart-container"><div id="graph_haredi"></div></div>
+</section>
+<div class="divider"></div>
+
+
+<section class="slide" id="slide6">
+  <h2>Correlation Matrix: All Variables</h2>
+  <p class="subtitle">Spearman rank correlations — which variables are redundant?</p>
+  <div class="insight">
+    <h3>Reading the Matrix</h3>
+    <p>Dark blue = strong positive correlation, dark red = strong negative.
+    Notice how Salary and SE Score are nearly identical (r ~ 0.94), while
+    Haredi % behaves independently from most other variables.</p>
+  </div>
+  <div class="chart-container"><div id="graph_heatmap"></div></div>
+</section>
+<div class="divider"></div>
+<div class="nav"><a href="#slide1">Intro</a><a href="#slide2">Education</a><a href="#slide3">Salary</a><a href="#slide4">Demographics</a><a href="#slide5">Haredi</a><a href="#slide6">Correlations</a></div>
+<script>
+const eduData = {"x": [20.43, 18.76, 56.63, 16.75, 18.94, 18.68, 23.71, 50.86, 26.81, 20.18, 22.29, 28.93, 14.13, 40.57, 70.13, 18.86, 67.1, 37.37, 26.47, 28.3, 21.51, 37.58, 30.02, 19.32, 16.14, 11.29, 52.45, 31.86, 20.58, 28.73, 17.93, 19.61, 10.61, 10.15, 27.16, 60.31, 20.95, 12.47, 18.18, 23.42, 17.04, 22.87, 16.25, 4.82, 32.3, 36.54, 26.93, 61.34, 60.5, 43.74, 36.74, 56.33, 18.57, 26.76, 23.83, 22.8, 17.64, 55.48, 61.24, 50.71, 55.24, 22.29, 12.63, 28.97, 29.22, 16.26, 29.23, 43.46, 18.67, 32.99, 16.27, 10.53, 21.67, 20.51, 24.29, 25.73, 19.56, 21.12, 18.89, 33.59, 37.52, 18.77, 43.0, 26.46, 24.95, 16.92, 24.61, 31.94, 63.31, 19.18, 16.25, 17.28, 23.65, 59.59, 29.72, 38.48, 30.9, 19.44, 14.93, 50.89, 18.96, 26.9, 57.13, 35.71, 69.95, 19.41, 19.22, 47.2, 16.07, 19.66, 19.3, 24.14, 23.69, 6.99, 60.89, 55.56, 17.37, 63.78, 17.51, 45.09, 34.15, 18.69, 30.03, 28.9, 17.71, 33.94, 29.51, 19.47, 51.36, 20.43, 38.69, 20.28, 32.26, 20.97, 60.1, 27.84, 19.51, 62.59, 29.65, 9.63, 17.01, 18.68, 21.95, 9.35, 18.56, 25.26, 27.24, 21.31, 24.09, 15.02, 13.13, 31.66, 26.51, 41.96, 51.69, 38.2, 21.27, 54.32, 49.17, 19.48, 32.41, 58.02, 34.75, 25.68, 33.03, 20.1, 57.7, 24.72, 24.85, 36.41, 16.19, 20.36, 23.97, 47.52, 27.48, 39.13, 42.01, 35.68, 13.6, 43.8, 15.11, 12.56, 15.67, 48.49, 57.71, 54.44, 55.93, 18.32, 11.69, 25.45, 60.33, 24.73, 16.25, 18.25, 51.49, 56.13, 12.26], "y": [8.04, 7.82, 3.45, 6.8, 8.82, 8.11, 7.21, 3.51, 6.23, 7.92, 7.03, 4.0, 4.94, 4.18, 2.49, 7.71, 4.08, 5.41, 6.83, 8.21, 6.11, 4.07, 10.28, 7.82, 7.85, 8.12, 3.82, 4.27, 6.81, 5.15, 9.9, 5.86, 5.77, 6.77, 7.03, 4.21, 5.12, 8.02, 7.93, 8.27, 7.12, 6.41, 7.0, 10.14, 4.68, 4.52, 4.69, 4.04, 4.04, 4.21, 4.22, 3.94, 7.83, 7.09, 6.54, 8.72, 9.51, 4.84, 2.25, 5.12, 4.39, 5.12, 8.83, 7.52, 7.33, 6.64, 4.84, 8.68, 11.11, 6.81, 14.82, 9.07, 6.38, 6.53, 7.61, 9.24, 8.02, 6.66, 13.27, 5.71, 5.11, 6.66, 5.57, 8.21, 5.44, 9.3, 8.71, 6.02, 3.91, 6.17, 6.98, 6.88, 6.36, 4.54, 7.02, 5.74, 6.55, 7.93, 7.7, 6.63, 6.6, 6.22, 5.02, 7.79, 3.05, 7.39, 6.4, 4.92, 5.97, 7.61, 10.29, 13.38, 10.52, 5.05, 3.18, 4.06, 5.89, 2.77, 7.34, 4.25, 5.01, 5.99, 6.45, 8.55, 7.86, 6.89, 9.12, 8.69, 4.34, 7.88, 7.61, 7.38, 7.29, 8.17, 2.42, 7.53, 4.96, 4.49, 8.95, 8.07, 7.48, 8.61, 8.38, 6.99, 8.71, 11.22, 7.9, 10.38, 6.12, 7.45, 6.11, 4.85, 5.39, 6.67, 3.32, 6.33, 12.7, 3.59, 4.59, 6.97, 9.61, 4.25, 6.24, 9.26, 8.75, 8.7, 7.24, 10.22, 4.1, 8.11, 9.09, 7.69, 11.06, 5.39, 7.7, 5.11, 9.34, 5.72, 7.05, 6.38, 8.1, 6.9, 8.08, 5.27, 4.56, 4.46, 4.72, 6.83, 6.1, 7.36, 2.91, 6.84, 9.05, 8.36, 5.28, 3.78, 7.56], "names": ["\u05d0\u05d1\u05d5 \u05d2\u05d5\u05e9", "\u05d0\u05d1\u05d5 \u05e1\u05e0\u05d0\u05df", "\u05d0\u05d1\u05df \u05d9\u05d4\u05d5\u05d3\u05d4", "\u05d0\u05d5\u05dd \u05d0\u05dc-\u05e4\u05d7\u05dd", "\u05d0\u05d5\u05e4\u05e7\u05d9\u05dd", "\u05d0\u05d5\u05e8 \u05d9\u05d4\u05d5\u05d3\u05d4", "\u05d0\u05d5\u05e8 \u05e2\u05e7\u05d9\u05d1\u05d0", "\u05d0\u05d5\u05e8\u05e0\u05d9\u05ea", "\u05d0\u05d6\u05d5\u05e8", "\u05d0\u05d9\u05dc\u05ea", "\u05d0\u05db\u05e1\u05d0\u05dc", "\u05d0\u05dc\u05d9\u05db\u05d9\u05df", "\u05d0\u05dc\u05e2\u05d3", "\u05d0\u05dc\u05e4\u05d9 \u05de\u05e0\u05e9\u05d4", "\u05d0\u05dc\u05e7\u05e0\u05d4", "\u05d0\u05e2\u05d1\u05dc\u05d9\u05df", "\u05d0\u05e4\u05e8\u05ea", "\u05d0\u05e8\u05d9\u05d0\u05dc", "\u05d0\u05e9\u05d3\u05d5\u05d3", "\u05d0\u05e9\u05e7\u05dc\u05d5\u05df", "\u05d1\u05d0\u05e7\u05d4 \u05d0\u05dc-\u05d2\u05e8\u05d1\u05d9\u05d4", "\u05d1\u05d0\u05e8 \u05d9\u05e2\u05e7\u05d1", "\u05d1\u05d0\u05e8 \u05e9\u05d1\u05e2", "\u05d1\u05d5\u05e2\u05d9\u05d9\u05e0\u05d4-\u05e0\u05d5\u05d2'\u05d9\u05d3\u05d0\u05ea", "\u05d1\u05d5\u05e7\u05e2\u05d0\u05ea\u05d0", "\u05d1\u05d9\u05e8 \u05d0\u05dc-\u05de\u05db\u05e1\u05d5\u05e8", "\u05d1\u05d9\u05ea \u05d0\u05dc", "\u05d1\u05d9\u05ea \u05d0\u05e8\u05d9\u05d4-\u05e2\u05d5\u05e4\u05e8\u05d9\u05dd", "\u05d1\u05d9\u05ea \u05d2'\u05df", "\u05d1\u05d9\u05ea \u05d3\u05d2\u05df", "\u05d1\u05d9\u05ea \u05e9\u05d0\u05df", "\u05d1\u05d9\u05ea \u05e9\u05de\u05e9", "\u05d1\u05d9\u05ea\u05e8 \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05d1\u05e0\u05d9 \u05d1\u05e8\u05e7", "\u05d1\u05e0\u05d9 \u05e2\u05d9\"\u05e9", "\u05d1\u05e0\u05d9\u05de\u05d9\u05e0\u05d4-\u05d2\u05d1\u05e2\u05ea \u05e2\u05d3\u05d4", "\u05d1\u05e1\u05de\"\u05d4", "\u05d1\u05e1\u05de\u05ea \u05d8\u05d1\u05e2\u05d5\u05df", "\u05d1\u05e2\u05e0\u05d4", "\u05d1\u05ea \u05d9\u05dd", "\u05d2'\u05d3\u05d9\u05d9\u05d3\u05d4-\u05de\u05db\u05e8", "\u05d2'\u05d5\u05dc\u05e1", "\u05d2'\u05dc\u05d2'\u05d5\u05dc\u05d9\u05d4", "\u05d2'\u05e1\u05e8 \u05d0-\u05d6\u05e8\u05e7\u05d0", "\u05d2'\u05e9 (\u05d2\u05d5\u05e9 \u05d7\u05dc\u05d1)", "\u05d2'\u05ea", "\u05d2\u05d1\u05e2\u05ea \u05d6\u05d0\u05d1", "\u05d2\u05d1\u05e2\u05ea \u05e9\u05de\u05d5\u05d0\u05dc", "\u05d2\u05d1\u05e2\u05ea\u05d9\u05d9\u05dd", "\u05d2\u05d3\u05e8\u05d4", "\u05d2\u05df \u05d9\u05d1\u05e0\u05d4", "\u05d2\u05e0\u05d9 \u05ea\u05e7\u05d5\u05d5\u05d4", "\u05d3\u05d0\u05dc\u05d9\u05ea \u05d0\u05dc-\u05db\u05e8\u05de\u05dc", "\u05d3\u05d1\u05d5\u05e8\u05d9\u05d9\u05d4", "\u05d3\u05d9\u05d9\u05e8 \u05d0\u05dc-\u05d0\u05e1\u05d3", "\u05d3\u05d9\u05d9\u05e8 \u05d7\u05e0\u05d0", "\u05d3\u05d9\u05de\u05d5\u05e0\u05d4", "\u05d4\u05d5\u05d3 \u05d4\u05e9\u05e8\u05d5\u05df", "\u05d4\u05e8 \u05d0\u05d3\u05e8", "\u05d4\u05e8\u05e6\u05dc\u05d9\u05d9\u05d4", "\u05d6\u05db\u05e8\u05d5\u05df \u05d9\u05e2\u05e7\u05d1", "\u05d6\u05de\u05e8", "\u05d6\u05e8\u05d6\u05d9\u05e8", "\u05d7\u05d3\u05e8\u05d4", "\u05d7\u05d5\u05dc\u05d5\u05df", "\u05d7\u05d5\u05e8\u05d4", "\u05d7\u05d5\u05e8\u05e4\u05d9\u05e9", "\u05d7\u05d9\u05e4\u05d4", "\u05d7\u05e6\u05d5\u05e8 \u05d4\u05d2\u05dc\u05d9\u05dc\u05d9\u05ea", "\u05d7\u05e8\u05d9\u05e9", "\u05d8\u05d1\u05e8\u05d9\u05d4", "\u05d8\u05d5\u05d1\u05d0-\u05d6\u05e0\u05d2\u05e8\u05d9\u05d9\u05d4", "\u05d8\u05d5\u05e8\u05e2\u05d0\u05df", "\u05d8\u05d9\u05d9\u05d1\u05d4", "\u05d8\u05d9\u05e8\u05d4", "\u05d8\u05d9\u05e8\u05ea \u05db\u05e8\u05de\u05dc", "\u05d8\u05de\u05e8\u05d4", "\u05d9\u05d0\u05e0\u05d5\u05d7-\u05d2'\u05ea", "\u05d9\u05d1\u05e0\u05d0\u05dc", "\u05d9\u05d1\u05e0\u05d4", "\u05d9\u05d4\u05d5\u05d3", "\u05d9\u05e4\u05d9\u05e2", "\u05d9\u05e7\u05e0\u05e2\u05dd \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05d9\u05e8\u05d5\u05d7\u05dd", "\u05d9\u05e8\u05d5\u05e9\u05dc\u05d9\u05dd", "\u05d9\u05e8\u05db\u05d0", "\u05db\u05d0\u05d1\u05d5\u05dc", "\u05db\u05d0\u05d5\u05db\u05d1 \u05d0\u05d1\u05d5 \u05d0\u05dc-\u05d4\u05d9\u05d2'\u05d0", "\u05db\u05d5\u05db\u05d1 \u05d9\u05d0\u05d9\u05e8", "\u05db\u05e1\u05d9\u05e4\u05d4", "\u05db\u05e1\u05e8\u05d0-\u05e1\u05de\u05d9\u05e2", "\u05db\u05e2\u05d1\u05d9\u05d4-\u05d8\u05d1\u05d0\u05e9-\u05d7\u05d2'\u05d0\u05d2'\u05e8\u05d4", "\u05db\u05e4\u05e8 \u05d1\u05e8\u05d0", "\u05db\u05e4\u05e8 \u05d5\u05e8\u05d3\u05d9\u05dd", "\u05db\u05e4\u05e8 \u05d9\u05d0\u05e1\u05d9\u05e3", "\u05db\u05e4\u05e8 \u05d9\u05d5\u05e0\u05d4", "\u05db\u05e4\u05e8 \u05db\u05de\u05d0", "\u05db\u05e4\u05e8 \u05db\u05e0\u05d0", "\u05db\u05e4\u05e8 \u05de\u05e0\u05d3\u05d0", "\u05db\u05e4\u05e8 \u05e1\u05d1\u05d0", "\u05db\u05e4\u05e8 \u05e7\u05d0\u05e1\u05dd", "\u05db\u05e4\u05e8 \u05e7\u05e8\u05e2", "\u05db\u05e4\u05e8 \u05ea\u05d1\u05d5\u05e8", "\u05db\u05e8\u05de\u05d9\u05d0\u05dc", "\u05dc\u05d4\u05d1\u05d9\u05dd", "\u05dc\u05d5\u05d3", "\u05dc\u05e7\u05d9\u05d4", "\u05de\u05d1\u05e9\u05e8\u05ea \u05e6\u05d9\u05d5\u05df", "\u05de\u05d2'\u05d3 \u05d0\u05dc-\u05db\u05e8\u05d5\u05dd", "\u05de\u05d2'\u05d3\u05dc \u05e9\u05de\u05e1", "\u05de\u05d2\u05d0\u05e8", "\u05de\u05d2\u05d3\u05dc", "\u05de\u05d2\u05d3\u05dc \u05d4\u05e2\u05de\u05e7", "\u05de\u05d5\u05d3\u05d9\u05e2\u05d9\u05df \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05de\u05d5\u05d3\u05d9\u05e2\u05d9\u05df-\u05de\u05db\u05d1\u05d9\u05dd-\u05e8\u05e2\u05d5\u05ea", "\u05de\u05d6\u05db\u05e8\u05ea \u05d1\u05ea\u05d9\u05d4", "\u05de\u05d6\u05e8\u05e2\u05d4", "\u05de\u05d9\u05ea\u05e8", "\u05de\u05e1\u05e2\u05d3\u05d4", "\u05de\u05e2\u05d9\u05dc\u05d9\u05d0", "\u05de\u05e2\u05dc\u05d4 \u05d0\u05d3\u05d5\u05de\u05d9\u05dd", "\u05de\u05e2\u05dc\u05d4 \u05e2\u05d9\u05e8\u05d5\u05df", "\u05de\u05e2\u05dc\u05d5\u05ea-\u05ea\u05e8\u05e9\u05d9\u05d7\u05d0", "\u05de\u05e6\u05e4\u05d4 \u05e8\u05de\u05d5\u05df", "\u05de\u05e9\u05d4\u05d3", "\u05e0\u05d4\u05e8\u05d9\u05d9\u05d4", "\u05e0\u05d5\u05e3 \u05d4\u05d2\u05dc\u05d9\u05dc", "\u05e0\u05d7\u05e3", "\u05e0\u05e1 \u05e6\u05d9\u05d5\u05e0\u05d4", "\u05e0\u05e6\u05e8\u05ea", "\u05e0\u05e9\u05e8", "\u05e0\u05ea\u05d9\u05d1\u05d5\u05ea", "\u05e0\u05ea\u05e0\u05d9\u05d4", "\u05e1\u05d0\u05d2'\u05d5\u05e8", "\u05e1\u05d1\u05d9\u05d5\u05df", "\u05e1\u05d7'\u05e0\u05d9\u05df", "\u05e2'\u05d2'\u05e8", "\u05e2\u05d5\u05de\u05e8", "\u05e2\u05d9\u05d9\u05dc\u05d1\u05d5\u05df", "\u05e2\u05d9\u05dc\u05d5\u05d8", "\u05e2\u05d9\u05df \u05de\u05d0\u05d4\u05dc", "\u05e2\u05d9\u05df \u05e7\u05e0\u05d9\u05d9\u05d0", "\u05e2\u05db\u05d5", "\u05e2\u05de\u05e0\u05d5\u05d0\u05dc", "\u05e2\u05e1\u05e4\u05d9\u05d0", "\u05e2\u05e4\u05d5\u05dc\u05d4", "\u05e2\u05e8\u05d0\u05d1\u05d4", "\u05e2\u05e8\u05d3", "\u05e2\u05e8\u05e2\u05e8\u05d4", "\u05e2\u05e8\u05e2\u05e8\u05d4-\u05d1\u05e0\u05d2\u05d1", "\u05e4\u05d5\u05e8\u05d9\u05d9\u05d3\u05d9\u05e1", "\u05e4\u05e1\u05d5\u05d8\u05d4", "\u05e4\u05e7\u05d9\u05e2\u05d9\u05df (\u05d1\u05d5\u05e7\u05d9\u05d9\u05e2\u05d4)", "\u05e4\u05e8\u05d3\u05e1 \u05d7\u05e0\u05d4-\u05db\u05e8\u05db\u05d5\u05e8", "\u05e4\u05e8\u05d3\u05e1\u05d9\u05d9\u05d4", "\u05e4\u05ea\u05d7 \u05ea\u05e7\u05d5\u05d5\u05d4", "\u05e6\u05e4\u05ea", "\u05e7\u05d3\u05d5\u05de\u05d9\u05dd", "\u05e7\u05d3\u05d9\u05de\u05d4-\u05e6\u05d5\u05e8\u05df", "\u05e7\u05dc\u05e0\u05e1\u05d5\u05d5\u05d4", "\u05e7\u05e6\u05e8\u05d9\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05d5\u05e0\u05d5", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05e8\u05d1\u05e2", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05ea\u05d0", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d1\u05d9\u05d0\u05dc\u05d9\u05e7", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d2\u05ea", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d8\u05d1\u05e2\u05d5\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d9\u05dd", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d9\u05e2\u05e8\u05d9\u05dd", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05de\u05d5\u05e6\u05e7\u05d9\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05de\u05dc\u05d0\u05db\u05d9", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05e2\u05e7\u05e8\u05d5\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05e9\u05de\u05d5\u05e0\u05d4", "\u05e7\u05e8\u05e0\u05d9 \u05e9\u05d5\u05de\u05e8\u05d5\u05df", "\u05e8\u05d0\u05de\u05d4", "\u05e8\u05d0\u05e9 \u05d4\u05e2\u05d9\u05df", "\u05e8\u05d0\u05e9 \u05e4\u05d9\u05e0\u05d4", "\u05e8\u05d0\u05e9\u05d5\u05df \u05dc\u05e6\u05d9\u05d5\u05df", "\u05e8\u05d4\u05d8", "\u05e8\u05d7\u05d5\u05d1\u05d5\u05ea", "\u05e8\u05d9\u05d9\u05e0\u05d4", "\u05e8\u05db\u05e1\u05d9\u05dd", "\u05e8\u05de\u05dc\u05d4", "\u05e8\u05de\u05ea \u05d2\u05df", "\u05e8\u05de\u05ea \u05d4\u05e9\u05e8\u05d5\u05df", "\u05e8\u05de\u05ea \u05d9\u05e9\u05d9", "\u05e8\u05e2\u05e0\u05e0\u05d4", "\u05e9\u05d1\u05dc\u05d9 - \u05d0\u05d5\u05dd \u05d0\u05dc-\u05d2\u05e0\u05dd", "\u05e9\u05d2\u05d1-\u05e9\u05dc\u05d5\u05dd", "\u05e9\u05d3\u05e8\u05d5\u05ea", "\u05e9\u05d5\u05d4\u05dd", "\u05e9\u05dc\u05d5\u05de\u05d9", "\u05e9\u05e2\u05d1", "\u05e9\u05e4\u05e8\u05e2\u05dd", "\u05ea\u05dc \u05d0\u05d1\u05d9\u05d1 -\u05d9\u05e4\u05d5", "\u05ea\u05dc \u05de\u05d5\u05e0\u05d3", "\u05ea\u05dc \u05e9\u05d1\u05e2"], "cluster": [3.0, 3.0, 9.0, 2.0, 3.0, 5.0, 5.0, 8.0, 7.0, 6.0, 3.0, 7.0, 2.0, 8.0, 8.0, 3.0, 7.0, 6.0, 5.0, 5.0, 4.0, 7.0, 5.0, 3.0, 3.0, 2.0, 4.0, 7.0, 4.0, 7.0, 4.0, 2.0, 2.0, 2.0, 5.0, 8.0, 3.0, 3.0, 3.0, 5.0, 3.0, 5.0, 3.0, 2.0, 7.0, 5.0, 4.0, 8.0, 9.0, 7.0, 7.0, 9.0, 5.0, 4.0, 4.0, 4.0, 4.0, 9.0, 9.0, 8.0, 8.0, 4.0, 3.0, 6.0, 7.0, 1.0, 5.0, 7.0, 4.0, 5.0, 3.0, 3.0, 3.0, 3.0, 5.0, 6.0, 3.0, 4.0, 2.0, 7.0, 7.0, 3.0, 7.0, 4.0, 2.0, 3.0, 3.0, 5.0, 9.0, 1.0, 3.0, 3.0, 4.0, 9.0, 5.0, 7.0, 6.0, 3.0, 2.0, 8.0, 4.0, 5.0, 8.0, 5.0, 9.0, 3.0, 2.0, 8.0, 3.0, 3.0, 3.0, 5.0, 4.0, 1.0, 8.0, 8.0, 4.0, 9.0, 3.0, 7.0, 6.0, 3.0, 5.0, 3.0, 3.0, 6.0, 5.0, 3.0, 8.0, 3.0, 7.0, 3.0, 6.0, 4.0, 10.0, 4.0, 3.0, 9.0, 5.0, 2.0, 3.0, 3.0, 4.0, 2.0, 5.0, 5.0, 3.0, 3.0, 4.0, 1.0, 3.0, 7.0, 5.0, 7.0, 9.0, 7.0, 2.0, 5.0, 8.0, 3.0, 5.0, 9.0, 3.0, 6.0, 6.0, 4.0, 8.0, 5.0, 2.0, 7.0, 3.0, 5.0, 5.0, 6.0, 5.0, 7.0, 7.0, 7.0, 2.0, 7.0, 3.0, 2.0, 4.0, 8.0, 9.0, 8.0, 8.0, 3.0, 1.0, 5.0, 9.0, 6.0, 3.0, 3.0, 8.0, 9.0, 1.0], "slope": -0.08834494299089496, "intercept": 9.413473123040633, "corr": -0.5883317343018566};
+const salData = {"x": [10230.0, 9878.0, 8230.0, 8376.0, 22141.0, 8534.0, 7505.0, 11657.0, 12623.0, 12329.0, 19440.0, 14083.0, 16368.0, 12367.0, 9792.0, 9386.0, 14644.0, 12968.0, 9175.0, 16038.0, 17218.0, 18738.0, 9041.0, 16434.0, 13204.0, 12278.0, 12283.0, 9857.0, 16937.0, 13024.0, 8975.0, 8774.0, 9098.0, 6781.0, 11502.0, 15466.0, 10554.0, 14860.0, 20892.0, 22854.0, 11133.0, 10285.0, 7891.0, 9144.0, 11572.0, 21404.0, 8731.0, 8633.0, 8630.0, 11923.0, 10108.0, 17764.0, 11141.0, 9284.0, 11393.0, 8401.0, 7891.0, 12327.0, 10999.0, 11146.0, 16150.0, 18564.0, 12340.0, 20015.0, 21212.0, 16817.0, 16018.0, 14933.0, 10628.0, 21887.0, 10997.0, 9749.0, 10585.0, 10127.0, 13318.0, 22178.0, 20651.0, 20941.0, 20327.0, 20748.0, 9716.0, 9217.0, 13120.0, 13665.0, 9445.0, 11836.0, 15256.0, 10812.0, 12574.0, 15999.0, 10425.0, 9079.0, 9232.0, 9025.0, 9823.0, 13419.0, 14108.0, 8893.0, 10938.0, 9889.0, 15284.0, 14813.0, 16885.0, 9160.0, 17000.0, 16671.0, 12602.0, 11199.0, 10089.0, 9236.0, 10192.0, 12435.0, 22362.0, 8806.0, 9575.0, 10762.0, 8905.0, 16792.0, 9727.0, 22042.0, 21519.0, 12053.0, 10590.0, 16008.0, 12475.0, 8485.0, 8105.0, 9147.0, 18511.0, 8897.0, 10399.0, 17849.0, 12699.0, 24176.0, 11065.0, 20826.0, 9137.0, 13227.0, 17639.0, 8970.0, 8557.0, 10333.0, 11070.0, 7599.0, 20393.0, 9204.0, 20011.0, 9799.0, 10794.0, 21490.0, 8165.0, 14885.0, 13689.0, 13512.0, 8812.0, 12098.0, 12512.0, 10452.0, 15643.0, 8465.0, 20860.0, 9472.0, 13555.0, 16267.0, 17238.0, 10972.0, 24570.0, 13937.0, 9020.0, 13888.0, 19314.0, 16497.0, 9951.0, 15010.0, 10963.0, 13196.0, 11129.0, 32892.0, 9824.0, 9837.0, 9402.0, 10100.0, 8133.0, 22427.0, 11742.0, 8130.0, 8179.0, 8551.0, 8745.0, 11046.0, 12737.0, 19210.0, 7912.0, 11344.0, 11466.0, 13300.0, 10117.0, 10660.0, 9460.0, 9415.0, 19863.0, 17029.0, 8945.0, 12292.0, 10508.0, 15547.0, 19657.0, 15500.0, 16475.0, 18339.0, 19656.0, 20956.0, 9599.0, 13646.0, 19280.0, 23072.0, 9480.0, 15821.0, 8839.0, 10960.0, 21707.0, 10388.0, 13055.0, 13766.0, 11181.0, 17948.0, 11342.0, 10766.0, 14276.0, 10488.0, 11880.0, 11157.0, 14201.0, 11104.0, 16333.0, 13462.0, 15297.0, 14880.0, 9144.0, 9981.0, 15999.0, 8985.0, 8338.0, 11281.0, 18287.0, 23425.0, 18677.0, 20362.0, 9704.0, 8774.0, 12819.0, 21800.0, 9426.0, 11816.0, 13569.0, 22856.0, 8771.0, 9754.0, 19777.0, 22939.0, 8600.0, 7976.0, 13287.0], "y": [8.04, 7.82, 5.87, 9.62, 3.45, 6.8, 7.7, 8.82, 8.11, 7.21, 3.51, 6.23, 3.5, 7.92, 7.03, 5.56, 4.18, 4.0, 4.94, 2.89, 4.18, 2.49, 7.71, 4.08, 5.41, 6.83, 8.21, 6.11, 4.07, 10.28, 7.82, 7.85, 8.12, 4.74, 3.82, 4.27, 6.81, 5.15, 3.01, 3.18, 9.9, 5.86, 5.77, 6.77, 7.03, 4.21, 5.12, 8.02, 7.93, 2.28, 4.19, 3.41, 8.27, 7.12, 6.41, 7.0, 10.14, 4.68, 4.52, 5.2, 5.38, 3.55, 4.69, 4.04, 4.04, 4.21, 4.22, 4.76, 8.0, 3.94, 7.83, 7.09, 6.54, 8.72, 9.51, 4.84, 2.11, 2.25, 5.12, 4.39, 5.12, 8.83, 7.52, 7.33, 6.64, 4.84, 8.68, 11.11, 6.81, 4.82, 14.82, 9.07, 6.38, 6.53, 7.61, 9.24, 2.35, 8.02, 6.66, 13.27, 5.71, 2.95, 5.11, 6.66, 2.19, 5.57, 8.21, 5.44, 9.3, 8.71, 6.02, 3.19, 3.91, 4.87, 6.17, 6.98, 6.88, 2.4, 6.36, 1.81, 4.54, 4.05, 7.02, 5.74, 6.55, 7.93, 7.7, 6.78, 6.63, 6.6, 6.22, 5.02, 7.79, 3.05, 7.39, 3.13, 6.4, 3.73, 4.92, 5.97, 7.61, 10.29, 10.52, 5.05, 3.18, 7.47, 4.06, 5.89, 5.66, 2.77, 7.34, 6.5, 4.25, 5.01, 5.99, 6.45, 4.6, 8.55, 3.8, 7.86, 2.37, 6.04, 6.89, 4.08, 3.04, 9.12, 3.14, 3.59, 8.69, 3.15, 4.34, 4.08, 7.88, 7.61, 7.38, 7.29, 8.17, 2.42, 8.82, 7.53, 8.56, 4.96, 8.17, 4.49, 8.95, 8.07, 7.48, 3.75, 8.61, 8.38, 2.58, 1.71, 6.99, 8.71, 11.22, 2.96, 7.9, 10.38, 6.12, 7.45, 4.57, 2.39, 6.11, 4.85, 5.39, 6.67, 3.32, 6.33, 4.59, 2.94, 3.39, 2.77, 12.7, 3.59, 4.59, 3.26, 6.97, 6.1, 3.65, 9.61, 4.25, 6.24, 9.26, 8.75, 8.7, 7.24, 10.22, 4.1, 8.11, 9.09, 7.69, 11.06, 5.39, 7.7, 5.11, 9.34, 5.72, 2.1, 7.05, 7.34, 6.38, 8.1, 6.9, 8.08, 5.27, 4.56, 4.46, 4.72, 6.83, 6.1, 7.36, 2.91, 5.93, 3.45, 6.84, 2.68, 9.05, 8.36, 5.28, 3.78, 7.56, 7.98, 3.62], "names": ["\u05d0\u05d1\u05d5 \u05d2\u05d5\u05e9", "\u05d0\u05d1\u05d5 \u05e1\u05e0\u05d0\u05df", "\u05d0\u05d1\u05d5 \u05ea\u05dc\u05d5\u05dc", "\u05d0\u05d1\u05d8\u05d9\u05df", "\u05d0\u05d1\u05df \u05d9\u05d4\u05d5\u05d3\u05d4", "\u05d0\u05d5\u05dd \u05d0\u05dc-\u05e4\u05d7\u05dd", "\u05d0\u05d5\u05dd \u05d1\u05d8\u05d9\u05df", "\u05d0\u05d5\u05e4\u05e7\u05d9\u05dd", "\u05d0\u05d5\u05e8 \u05d9\u05d4\u05d5\u05d3\u05d4", "\u05d0\u05d5\u05e8 \u05e2\u05e7\u05d9\u05d1\u05d0", "\u05d0\u05d5\u05e8\u05e0\u05d9\u05ea", "\u05d0\u05d6\u05d5\u05e8", "\u05d0\u05d7\u05d5\u05d6\u05ea \u05d1\u05e8\u05e7", "\u05d0\u05d9\u05dc\u05ea", "\u05d0\u05db\u05e1\u05d0\u05dc", "\u05d0\u05dc \u05e1\u05d9\u05d9\u05d3", "\u05d0\u05dc\u05d5\u05df \u05e9\u05d1\u05d5\u05ea", "\u05d0\u05dc\u05d9\u05db\u05d9\u05df", "\u05d0\u05dc\u05e2\u05d3", "\u05d0\u05dc\u05e2\u05d6\u05e8", "\u05d0\u05dc\u05e4\u05d9 \u05de\u05e0\u05e9\u05d4", "\u05d0\u05dc\u05e7\u05e0\u05d4", "\u05d0\u05e2\u05d1\u05dc\u05d9\u05df", "\u05d0\u05e4\u05e8\u05ea", "\u05d0\u05e8\u05d9\u05d0\u05dc", "\u05d0\u05e9\u05d3\u05d5\u05d3", "\u05d0\u05e9\u05e7\u05dc\u05d5\u05df", "\u05d1\u05d0\u05e7\u05d4 \u05d0\u05dc-\u05d2\u05e8\u05d1\u05d9\u05d4", "\u05d1\u05d0\u05e8 \u05d9\u05e2\u05e7\u05d1", "\u05d1\u05d0\u05e8 \u05e9\u05d1\u05e2", "\u05d1\u05d5\u05e2\u05d9\u05d9\u05e0\u05d4-\u05e0\u05d5\u05d2'\u05d9\u05d3\u05d0\u05ea", "\u05d1\u05d5\u05e7\u05e2\u05d0\u05ea\u05d0", "\u05d1\u05d9\u05e8 \u05d0\u05dc-\u05de\u05db\u05e1\u05d5\u05e8", "\u05d1\u05d9\u05e8 \u05d4\u05d3\u05d0\u05d2'", "\u05d1\u05d9\u05ea \u05d0\u05dc", "\u05d1\u05d9\u05ea \u05d0\u05e8\u05d9\u05d4-\u05e2\u05d5\u05e4\u05e8\u05d9\u05dd", "\u05d1\u05d9\u05ea \u05d2'\u05df", "\u05d1\u05d9\u05ea \u05d3\u05d2\u05df", "\u05d1\u05d9\u05ea \u05d7\u05e9\u05de\u05d5\u05e0\u05d0\u05d9", "\u05d1\u05d9\u05ea \u05d9\u05e6\u05d7\u05e7-\u05e9\u05e2\u05e8 \u05d7\u05e4\u05e8", "\u05d1\u05d9\u05ea \u05e9\u05d0\u05df", "\u05d1\u05d9\u05ea \u05e9\u05de\u05e9", "\u05d1\u05d9\u05ea\u05e8 \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05d1\u05e0\u05d9 \u05d1\u05e8\u05e7", "\u05d1\u05e0\u05d9 \u05e2\u05d9\"\u05e9", "\u05d1\u05e0\u05d9\u05de\u05d9\u05e0\u05d4-\u05d2\u05d1\u05e2\u05ea \u05e2\u05d3\u05d4", "\u05d1\u05e1\u05de\"\u05d4", "\u05d1\u05e1\u05de\u05ea \u05d8\u05d1\u05e2\u05d5\u05df", "\u05d1\u05e2\u05e0\u05d4", "\u05d1\u05e8\u05db\u05d4", "\u05d1\u05e8\u05e7\u05ea", "\u05d1\u05ea \u05d7\u05e4\u05e8", "\u05d1\u05ea \u05d9\u05dd", "\u05d2'\u05d3\u05d9\u05d9\u05d3\u05d4-\u05de\u05db\u05e8", "\u05d2'\u05d5\u05dc\u05e1", "\u05d2'\u05dc\u05d2'\u05d5\u05dc\u05d9\u05d4", "\u05d2'\u05e1\u05e8 \u05d0-\u05d6\u05e8\u05e7\u05d0", "\u05d2'\u05e9 (\u05d2\u05d5\u05e9 \u05d7\u05dc\u05d1)", "\u05d2'\u05ea", "\u05d2\u05d1\u05e2 \u05d1\u05e0\u05d9\u05de\u05d9\u05df", "\u05d2\u05d1\u05e2\u05ea \u05d0\u05d1\u05e0\u05d9", "\u05d2\u05d1\u05e2\u05ea \u05d1\u05e8\u05e0\u05e8", "\u05d2\u05d1\u05e2\u05ea \u05d6\u05d0\u05d1", "\u05d2\u05d1\u05e2\u05ea \u05e9\u05de\u05d5\u05d0\u05dc", "\u05d2\u05d1\u05e2\u05ea\u05d9\u05d9\u05dd", "\u05d2\u05d3\u05e8\u05d4", "\u05d2\u05df \u05d9\u05d1\u05e0\u05d4", "\u05d2\u05df \u05e0\u05e8", "\u05d2\u05e0\u05d9 \u05de\u05d5\u05d3\u05d9\u05e2\u05d9\u05df", "\u05d2\u05e0\u05d9 \u05ea\u05e7\u05d5\u05d5\u05d4", "\u05d3\u05d0\u05dc\u05d9\u05ea \u05d0\u05dc-\u05db\u05e8\u05de\u05dc", "\u05d3\u05d1\u05d5\u05e8\u05d9\u05d9\u05d4", "\u05d3\u05d9\u05d9\u05e8 \u05d0\u05dc-\u05d0\u05e1\u05d3", "\u05d3\u05d9\u05d9\u05e8 \u05d7\u05e0\u05d0", "\u05d3\u05d9\u05de\u05d5\u05e0\u05d4", "\u05d4\u05d5\u05d3 \u05d4\u05e9\u05e8\u05d5\u05df", "\u05d4\u05d5\u05e9\u05e2\u05d9\u05d4", "\u05d4\u05e8 \u05d0\u05d3\u05e8", "\u05d4\u05e8\u05e6\u05dc\u05d9\u05d9\u05d4", "\u05d6\u05db\u05e8\u05d5\u05df \u05d9\u05e2\u05e7\u05d1", "\u05d6\u05de\u05e8", "\u05d6\u05e8\u05d6\u05d9\u05e8", "\u05d7\u05d3\u05e8\u05d4", "\u05d7\u05d5\u05dc\u05d5\u05df", "\u05d7\u05d5\u05e8\u05d4", "\u05d7\u05d5\u05e8\u05e4\u05d9\u05e9", "\u05d7\u05d9\u05e4\u05d4", "\u05d7\u05e6\u05d5\u05e8 \u05d4\u05d2\u05dc\u05d9\u05dc\u05d9\u05ea", "\u05d7\u05e8\u05d9\u05e9", "\u05d7\u05e9\u05de\u05d5\u05e0\u05d0\u05d9\u05dd", "\u05d8\u05d1\u05e8\u05d9\u05d4", "\u05d8\u05d5\u05d1\u05d0-\u05d6\u05e0\u05d2\u05e8\u05d9\u05d9\u05d4", "\u05d8\u05d5\u05e8\u05e2\u05d0\u05df", "\u05d8\u05d9\u05d9\u05d1\u05d4", "\u05d8\u05d9\u05e8\u05d4", "\u05d8\u05d9\u05e8\u05ea \u05db\u05e8\u05de\u05dc", "\u05d8\u05dc\u05de\u05d5\u05df", "\u05d8\u05de\u05e8\u05d4", "\u05d9\u05d0\u05e0\u05d5\u05d7-\u05d2'\u05ea", "\u05d9\u05d1\u05e0\u05d0\u05dc", "\u05d9\u05d1\u05e0\u05d4", "\u05d9\u05d3 \u05d1\u05e0\u05d9\u05de\u05d9\u05df", "\u05d9\u05d4\u05d5\u05d3", "\u05d9\u05e4\u05d9\u05e2", "\u05d9\u05e7\u05d9\u05e8", "\u05d9\u05e7\u05e0\u05e2\u05dd \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05d9\u05e8\u05d5\u05d7\u05dd", "\u05d9\u05e8\u05d5\u05e9\u05dc\u05d9\u05dd", "\u05d9\u05e8\u05db\u05d0", "\u05db\u05d0\u05d1\u05d5\u05dc", "\u05db\u05d0\u05d5\u05db\u05d1 \u05d0\u05d1\u05d5 \u05d0\u05dc-\u05d4\u05d9\u05d2'\u05d0", "\u05db\u05d5\u05db\u05d1 \u05d4\u05e9\u05d7\u05e8", "\u05db\u05d5\u05db\u05d1 \u05d9\u05d0\u05d9\u05e8", "\u05db\u05d5\u05db\u05d1 \u05d9\u05e2\u05e7\u05d1", "\u05db\u05e1\u05d9\u05e4\u05d4", "\u05db\u05e1\u05e8\u05d0-\u05e1\u05de\u05d9\u05e2", "\u05db\u05e2\u05d1\u05d9\u05d4-\u05d8\u05d1\u05d0\u05e9-\u05d7\u05d2'\u05d0\u05d2'\u05e8\u05d4", "\u05db\u05e4\u05e8 \u05d0\u05d3\u05d5\u05de\u05d9\u05dd", "\u05db\u05e4\u05e8 \u05d1\u05e8\u05d0", "\u05db\u05e4\u05e8 \u05d4\u05d0\u05d5\u05e8\u05e0\u05d9\u05dd", "\u05db\u05e4\u05e8 \u05d5\u05e8\u05d3\u05d9\u05dd", "\u05db\u05e4\u05e8 \u05d7\u05d1\"\u05d3", "\u05db\u05e4\u05e8 \u05d9\u05d0\u05e1\u05d9\u05e3", "\u05db\u05e4\u05e8 \u05d9\u05d5\u05e0\u05d4", "\u05db\u05e4\u05e8 \u05db\u05de\u05d0", "\u05db\u05e4\u05e8 \u05db\u05e0\u05d0", "\u05db\u05e4\u05e8 \u05de\u05e0\u05d3\u05d0", "\u05db\u05e4\u05e8 \u05de\u05e6\u05e8", "\u05db\u05e4\u05e8 \u05e1\u05d1\u05d0", "\u05db\u05e4\u05e8 \u05e7\u05d0\u05e1\u05dd", "\u05db\u05e4\u05e8 \u05e7\u05e8\u05e2", "\u05db\u05e4\u05e8 \u05ea\u05d1\u05d5\u05e8", "\u05db\u05e8\u05de\u05d9\u05d0\u05dc", "\u05dc\u05d4\u05d1\u05d9\u05dd", "\u05dc\u05d5\u05d3", "\u05dc\u05e4\u05d9\u05d3", "\u05dc\u05e7\u05d9\u05d4", "\u05de\u05d1\u05d5\u05d0 \u05d7\u05d5\u05e8\u05d5\u05df", "\u05de\u05d1\u05e9\u05e8\u05ea \u05e6\u05d9\u05d5\u05df", "\u05de\u05d2'\u05d3 \u05d0\u05dc-\u05db\u05e8\u05d5\u05dd", "\u05de\u05d2'\u05d3\u05dc \u05e9\u05de\u05e1", "\u05de\u05d2\u05d0\u05e8", "\u05de\u05d2\u05d3\u05dc \u05d4\u05e2\u05de\u05e7", "\u05de\u05d5\u05d3\u05d9\u05e2\u05d9\u05df \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05de\u05d5\u05d3\u05d9\u05e2\u05d9\u05df-\u05de\u05db\u05d1\u05d9\u05dd-\u05e8\u05e2\u05d5\u05ea", "\u05de\u05d5\u05e7\u05d9\u05d9\u05d1\u05dc\u05d4", "\u05de\u05d6\u05db\u05e8\u05ea \u05d1\u05ea\u05d9\u05d4", "\u05de\u05d6\u05e8\u05e2\u05d4", "\u05de\u05d9\u05d9\u05e1\u05e8", "\u05de\u05d9\u05ea\u05e8", "\u05de\u05e1\u05e2\u05d3\u05d4", "\u05de\u05e2\u05d2\u05df \u05de\u05d9\u05db\u05d0\u05dc", "\u05de\u05e2\u05d9\u05dc\u05d9\u05d0", "\u05de\u05e2\u05dc\u05d4 \u05d0\u05d3\u05d5\u05de\u05d9\u05dd", "\u05de\u05e2\u05dc\u05d4 \u05e2\u05d9\u05e8\u05d5\u05df", "\u05de\u05e2\u05dc\u05d5\u05ea-\u05ea\u05e8\u05e9\u05d9\u05d7\u05d0", "\u05de\u05e6\u05e4\u05d4 \u05d9\u05e8\u05d9\u05d7\u05d5", "\u05de\u05e6\u05e4\u05d4 \u05e8\u05de\u05d5\u05df", "\u05de\u05e8\u05db\u05d6 \u05e9\u05e4\u05d9\u05e8\u05d0", "\u05de\u05e9\u05d4\u05d3", "\u05de\u05ea\u05df", "\u05e0\u05d0\u05e2\u05d5\u05e8\u05d4", "\u05e0\u05d4\u05e8\u05d9\u05d9\u05d4", "\u05e0\u05d5\u05d5\u05d4 \u05d3\u05e0\u05d9\u05d0\u05dc", "\u05e0\u05d5\u05e3 \u05d0\u05d9\u05d9\u05dc\u05d5\u05df", "\u05e0\u05d5\u05e3 \u05d4\u05d2\u05dc\u05d9\u05dc", "\u05e0\u05d5\u05e4\u05d9\u05ea", "\u05e0\u05d5\u05e7\u05d3\u05d9\u05dd", "\u05e0\u05d7\u05e3", "\u05e0\u05d9\u05e6\u05df", "\u05e0\u05e1 \u05e6\u05d9\u05d5\u05e0\u05d4", "\u05e0\u05e2\u05dc\u05d4", "\u05e0\u05e6\u05e8\u05ea", "\u05e0\u05e9\u05e8", "\u05e0\u05ea\u05d9\u05d1\u05d5\u05ea", "\u05e0\u05ea\u05e0\u05d9\u05d4", "\u05e1\u05d0\u05d2'\u05d5\u05e8", "\u05e1\u05d1\u05d9\u05d5\u05df", "\u05e1\u05d5\u05dc\u05dd", "\u05e1\u05d7'\u05e0\u05d9\u05df", "\u05e1\u05dc\u05de\u05d4", "\u05e2'\u05d2'\u05e8", "\u05e2\u05d5\u05d6\u05d9\u05d9\u05e8", "\u05e2\u05d5\u05de\u05e8", "\u05e2\u05d9\u05d9\u05dc\u05d1\u05d5\u05df", "\u05e2\u05d9\u05dc\u05d5\u05d8", "\u05e2\u05d9\u05df \u05de\u05d0\u05d4\u05dc", "\u05e2\u05d9\u05df \u05e0\u05e7\u05d5\u05d1\u05d0", "\u05e2\u05d9\u05df \u05e7\u05e0\u05d9\u05d9\u05d0", "\u05e2\u05db\u05d5", "\u05e2\u05dc\u05d9", "\u05e2\u05dc\u05d9 \u05d6\u05d4\u05d1", "\u05e2\u05de\u05e0\u05d5\u05d0\u05dc", "\u05e2\u05e1\u05e4\u05d9\u05d0", "\u05e2\u05e4\u05d5\u05dc\u05d4", "\u05e2\u05e4\u05e8\u05d4", "\u05e2\u05e8\u05d0\u05d1\u05d4", "\u05e2\u05e8\u05d3", "\u05e2\u05e8\u05e2\u05e8\u05d4", "\u05e2\u05e8\u05e2\u05e8\u05d4-\u05d1\u05e0\u05d2\u05d1", "\u05e2\u05ea\u05dc\u05d9\u05ea", "\u05e4\u05d3\u05d5\u05d0\u05dc", "\u05e4\u05d5\u05e8\u05d9\u05d9\u05d3\u05d9\u05e1", "\u05e4\u05e1\u05d5\u05d8\u05d4", "\u05e4\u05e7\u05d9\u05e2\u05d9\u05df (\u05d1\u05d5\u05e7\u05d9\u05d9\u05e2\u05d4)", "\u05e4\u05e8\u05d3\u05e1 \u05d7\u05e0\u05d4-\u05db\u05e8\u05db\u05d5\u05e8", "\u05e4\u05e8\u05d3\u05e1\u05d9\u05d9\u05d4", "\u05e4\u05ea\u05d7 \u05ea\u05e7\u05d5\u05d5\u05d4", "\u05e6\u05d5\u05e4\u05d9\u05dd", "\u05e6\u05d5\u05e8 \u05d4\u05d3\u05e1\u05d4", "\u05e6\u05d5\u05e8 \u05d9\u05e6\u05d7\u05e7", "\u05e6\u05d5\u05e8 \u05de\u05e9\u05d4", "\u05e6\u05e4\u05ea", "\u05e7\u05d3\u05d5\u05de\u05d9\u05dd", "\u05e7\u05d3\u05d9\u05de\u05d4-\u05e6\u05d5\u05e8\u05df", "\u05e7\u05d9\u05e1\u05e8\u05d9\u05d4", "\u05e7\u05dc\u05e0\u05e1\u05d5\u05d5\u05d4", "\u05e7\u05e6\u05d9\u05e8", "\u05e7\u05e6\u05e8 \u05d0-\u05e1\u05e8", "\u05e7\u05e6\u05e8\u05d9\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05d5\u05e0\u05d5", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05e8\u05d1\u05e2", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05ea\u05d0", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d1\u05d9\u05d0\u05dc\u05d9\u05e7", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d2\u05ea", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d8\u05d1\u05e2\u05d5\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d9\u05dd", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d9\u05e2\u05e8\u05d9\u05dd", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05de\u05d5\u05e6\u05e7\u05d9\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05de\u05dc\u05d0\u05db\u05d9", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05e2\u05e7\u05e8\u05d5\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05e9\u05de\u05d5\u05e0\u05d4", "\u05e7\u05e8\u05e0\u05d9 \u05e9\u05d5\u05de\u05e8\u05d5\u05df", "\u05e8\u05d0\u05de\u05d4", "\u05e8\u05d0\u05e9 \u05d4\u05e2\u05d9\u05df", "\u05e8\u05d0\u05e9 \u05e4\u05d9\u05e0\u05d4", "\u05e8\u05d0\u05e9\u05d5\u05df \u05dc\u05e6\u05d9\u05d5\u05df", "\u05e8\u05d1\u05d1\u05d4", "\u05e8\u05d4\u05d8", "\u05e8\u05d5\u05de\u05ea \u05d4\u05d9\u05d9\u05d1", "\u05e8\u05d7\u05d5\u05d1\u05d5\u05ea", "\u05e8\u05d9\u05d9\u05e0\u05d4", "\u05e8\u05db\u05e1\u05d9\u05dd", "\u05e8\u05de\u05dc\u05d4", "\u05e8\u05de\u05ea \u05d2\u05df", "\u05e8\u05de\u05ea \u05d4\u05e9\u05e8\u05d5\u05df", "\u05e8\u05de\u05ea \u05d9\u05e9\u05d9", "\u05e8\u05e2\u05e0\u05e0\u05d4", "\u05e9\u05d1\u05dc\u05d9 - \u05d0\u05d5\u05dd \u05d0\u05dc-\u05d2\u05e0\u05dd", "\u05e9\u05d2\u05d1-\u05e9\u05dc\u05d5\u05dd", "\u05e9\u05d3\u05e8\u05d5\u05ea", "\u05e9\u05d5\u05d4\u05dd", "\u05e9\u05d9\u05d9\u05d7' \u05d3\u05e0\u05d5\u05df", "\u05e9\u05d9\u05dc\u05d4", "\u05e9\u05dc\u05d5\u05de\u05d9", "\u05e9\u05de\u05e9\u05d9\u05ea", "\u05e9\u05e2\u05d1", "\u05e9\u05e4\u05e8\u05e2\u05dd", "\u05ea\u05dc \u05d0\u05d1\u05d9\u05d1 -\u05d9\u05e4\u05d5", "\u05ea\u05dc \u05de\u05d5\u05e0\u05d3", "\u05ea\u05dc \u05e9\u05d1\u05e2", "\u05ea\u05e4\u05e8\u05d7", "\u05ea\u05e7\u05d5\u05e2"], "cluster": [3.0, 3.0, 1.0, 2.0, 9.0, 2.0, 1.0, 3.0, 5.0, 5.0, 8.0, 7.0, 8.0, 6.0, 3.0, 1.0, 7.0, 7.0, 2.0, 7.0, 8.0, 8.0, 3.0, 7.0, 6.0, 5.0, 5.0, 4.0, 7.0, 5.0, 3.0, 3.0, 2.0, 1.0, 4.0, 7.0, 4.0, 7.0, 9.0, 9.0, 4.0, 2.0, 2.0, 2.0, 5.0, 8.0, 3.0, 3.0, 3.0, 3.0, 4.0, 8.0, 5.0, 3.0, 5.0, 3.0, 2.0, 7.0, 5.0, 4.0, 8.0, 8.0, 4.0, 8.0, 9.0, 7.0, 7.0, 7.0, 3.0, 9.0, 5.0, 4.0, 4.0, 4.0, 4.0, 9.0, 8.0, 9.0, 8.0, 8.0, 4.0, 3.0, 6.0, 7.0, 1.0, 5.0, 7.0, 4.0, 5.0, 7.0, 3.0, 3.0, 3.0, 3.0, 5.0, 6.0, 5.0, 3.0, 4.0, 2.0, 7.0, 6.0, 7.0, 3.0, 7.0, 7.0, 4.0, 2.0, 3.0, 3.0, 5.0, 4.0, 9.0, 2.0, 1.0, 3.0, 3.0, 7.0, 4.0, 9.0, 9.0, 4.0, 5.0, 7.0, 6.0, 3.0, 2.0, 3.0, 8.0, 4.0, 5.0, 8.0, 5.0, 9.0, 3.0, 9.0, 2.0, 5.0, 8.0, 3.0, 3.0, 3.0, 4.0, 1.0, 8.0, 3.0, 8.0, 4.0, 4.0, 9.0, 3.0, 2.0, 7.0, 6.0, 3.0, 5.0, 4.0, 3.0, 6.0, 3.0, 9.0, 3.0, 6.0, 7.0, 8.0, 5.0, 9.0, 5.0, 3.0, 5.0, 8.0, 7.0, 3.0, 7.0, 3.0, 6.0, 4.0, 10.0, 3.0, 4.0, 3.0, 3.0, 2.0, 9.0, 5.0, 2.0, 3.0, 2.0, 3.0, 4.0, 4.0, 7.0, 2.0, 5.0, 5.0, 6.0, 3.0, 3.0, 4.0, 1.0, 8.0, 7.0, 3.0, 7.0, 5.0, 7.0, 9.0, 7.0, 7.0, 8.0, 8.0, 9.0, 2.0, 5.0, 8.0, 9.0, 3.0, 7.0, 1.0, 5.0, 9.0, 3.0, 6.0, 6.0, 4.0, 8.0, 5.0, 2.0, 7.0, 3.0, 5.0, 5.0, 6.0, 5.0, 7.0, 7.0, 7.0, 6.0, 2.0, 2.0, 7.0, 3.0, 2.0, 4.0, 8.0, 9.0, 8.0, 8.0, 3.0, 1.0, 5.0, 9.0, 3.0, 4.0, 6.0, 9.0, 3.0, 3.0, 8.0, 9.0, 1.0, 1.0, 6.0], "slope": -0.0003112741835914947, "intercept": 10.242725478325704, "corr": -0.5976242150111559, "sal_se_corr": 0.9428407361550829};
+const arabData = {"x": [99.02, 99.8, 99.68, 99.97, 0.01, 0.0, 0.0, 99.9, 99.54, 0.68, 0.2, 0.53, 0.18, 0.27, 0.0, 0.05, 4.94, 99.92, 99.46, 0.0, 0.03, 0.03, 0.0, 0.0, 0.0, 0.0, 99.89, 0.0, 3.41, 0.23, 0.3, 99.89, 0.0, 0.35, 3.08, 99.86, 100.0, 99.96, 99.42, 0.0, 0.18, 99.99, 0.12, 0.0, 0.0, 0.89, 0.06, 0.0, 0.07, 0.78, 0.2, 99.95, 99.77, 99.79, 0.0, 0.22, 0.1, 0.0, 0.06, 0.89, 99.85, 100.0, 98.62, 99.92, 98.48, 99.91, 0.32, 0.0, 0.04, 0.13, 0.23, 0.08, 0.37, 0.3, 0.04, 0.0, 0.05, 99.65, 99.82, 99.95, 99.87, 0.8, 0.07, 0.0, 0.17, 0.22, 0.23, 99.95, 99.74, 1.01, 0.18, 99.87, 99.98, 12.11, 0.46, 1.38, 0.0, 1.5, 99.92, 99.97, 99.86, 99.71, 0.81, 0.0, 99.89, 99.99, 0.07, 0.16, 0.09, 0.17, 99.95, 0.0, 0.0, 0.09, 3.23, 39.18, 99.64, 99.92, 99.87, 0.0, 0.23, 0.0, 99.92, 99.98, 99.74, 0.02, 99.92, 0.04, 4.15, 0.0, 99.78, 0.05, 99.54, 99.93, 99.97, 99.93, 0.21, 99.83, 99.87, 0.73, 4.25, 4.39, 29.4, 0.0, 99.89, 0.0, 0.36, 99.91, 99.99, 99.91, 2.41, 0.06, 0.0, 0.04, 99.91, 0.04, 99.68, 99.57, 1.91, 99.92, 0.0, 97.53, 0.28, 0.0, 99.97, 22.57, 0.0, 4.1, 0.0, 100.0, 0.0, 0.0, 99.96, 2.35, 0.0, 0.0, 32.31, 0.75, 0.0, 99.85, 99.9, 0.05, 0.0, 0.08, 0.04, 99.68, 1.41, 0.15, 0.32, 99.98, 0.07, 100.0, 99.91, 100.0, 99.65, 99.93, 99.91, 2.14, 99.52, 99.99, 99.86, 99.97, 100.0, 32.37, 0.0, 0.04, 0.0, 98.14, 1.14, 0.0, 99.88, 3.93, 99.84, 99.91, 0.92, 0.0, 99.89, 0.0, 99.72, 99.98, 0.12, 0.03, 0.23, 0.04, 0.26, 0.76, 0.28, 2.12, 0.0, 0.08, 0.57, 99.79, 2.99, 99.97, 0.91, 0.12, 0.03, 0.26, 0.17, 0.15, 0.61, 0.19, 0.02, 0.13, 0.45, 0.66, 3.33, 0.08, 99.81, 0.07, 1.69, 0.13, 0.0, 99.75, 99.95, 0.26, 99.86, 0.0, 24.84, 0.67, 0.12, 0.14, 0.06, 99.91, 99.87, 0.66, 0.01, 99.93, 0.0, 1.45, 0.0, 99.97, 99.55, 4.82, 0.03, 99.81, 0.0, 0.02], "y": [8.04, 7.82, 5.87, 9.62, 3.45, 3.69, 4.9, 6.8, 7.7, 8.82, 8.11, 7.21, 3.51, 6.23, 3.5, 4.29, 7.92, 7.03, 5.56, 2.95, 4.18, 4.0, 4.94, 2.89, 4.18, 2.49, 7.71, 4.08, 5.41, 6.83, 8.21, 6.11, 2.78, 4.07, 10.28, 7.82, 7.85, 8.12, 4.74, 3.82, 4.27, 6.81, 5.15, 3.01, 3.18, 9.9, 5.86, 5.77, 6.77, 7.03, 4.21, 5.12, 8.02, 7.93, 0.51, 2.28, 4.53, 4.19, 3.41, 8.27, 7.12, 6.41, 7.0, 10.14, 4.68, 4.52, 5.2, 5.38, 3.55, 4.69, 4.04, 4.04, 4.21, 4.22, 4.76, 8.0, 3.94, 7.83, 7.09, 6.54, 8.72, 9.51, 4.84, 2.11, 2.25, 5.12, 4.39, 5.12, 8.83, 7.52, 7.33, 6.64, 4.84, 8.68, 11.11, 6.81, 4.82, 14.82, 9.07, 6.38, 6.53, 7.61, 9.24, 2.35, 8.02, 6.66, 13.27, 5.71, 2.95, 5.11, 6.66, 3.2, 2.19, 5.57, 8.21, 5.44, 9.3, 8.71, 6.02, 3.19, 3.91, 4.87, 6.17, 6.98, 6.88, 2.4, 6.36, 1.81, 4.54, 4.05, 7.02, 5.74, 6.55, 7.93, 7.7, 6.78, 6.63, 6.6, 6.22, 5.02, 7.79, 3.05, 7.39, 3.13, 6.4, 3.73, 4.92, 5.97, 7.61, 10.29, 13.38, 10.52, 5.05, 3.18, 7.47, 4.06, 5.89, 5.66, 2.77, 7.34, 6.5, 4.25, 5.01, 3.74, 5.99, 6.45, 4.6, 8.55, 3.8, 7.86, 2.37, 5.21, 6.04, 6.89, 4.08, 3.04, 9.12, 3.14, 3.59, 8.69, 7.17, 2.29, 3.15, 4.34, 4.08, 7.88, 7.61, 7.38, 7.29, 8.17, 2.42, 8.82, 7.53, 8.56, 4.86, 4.96, 8.17, 4.49, 8.95, 8.07, 7.48, 3.75, 8.61, 8.38, 2.58, 1.71, 6.99, 8.71, 11.22, 2.96, 7.9, 10.38, 6.12, 7.45, 4.57, 2.39, 6.11, 3.29, 4.85, 5.39, 6.67, 3.32, 6.33, 4.59, 2.94, 3.39, 2.77, 12.7, 3.59, 4.59, 3.26, 6.97, 6.1, 3.65, 9.61, 4.25, 6.24, 9.26, 8.75, 8.7, 7.24, 10.22, 4.1, 8.11, 9.09, 7.69, 11.06, 5.39, 7.7, 5.11, 9.34, 5.72, 2.1, 7.05, 7.34, 6.38, 8.1, 6.9, 8.08, 5.27, 4.56, 4.46, 4.72, 6.83, 6.1, 7.36, 2.91, 5.93, 3.45, 6.84, 2.68, 9.05, 8.36, 5.28, 3.78, 7.56, 7.98, 3.62], "names": ["\u05d0\u05d1\u05d5 \u05d2\u05d5\u05e9", "\u05d0\u05d1\u05d5 \u05e1\u05e0\u05d0\u05df", "\u05d0\u05d1\u05d5 \u05ea\u05dc\u05d5\u05dc", "\u05d0\u05d1\u05d8\u05d9\u05df", "\u05d0\u05d1\u05df \u05d9\u05d4\u05d5\u05d3\u05d4", "\u05d0\u05d1\u05df \u05e9\u05de\u05d5\u05d0\u05dc", "\u05d0\u05d1\u05e0\u05d9 \u05d7\u05e4\u05e5", "\u05d0\u05d5\u05dd \u05d0\u05dc-\u05e4\u05d7\u05dd", "\u05d0\u05d5\u05dd \u05d1\u05d8\u05d9\u05df", "\u05d0\u05d5\u05e4\u05e7\u05d9\u05dd", "\u05d0\u05d5\u05e8 \u05d9\u05d4\u05d5\u05d3\u05d4", "\u05d0\u05d5\u05e8 \u05e2\u05e7\u05d9\u05d1\u05d0", "\u05d0\u05d5\u05e8\u05e0\u05d9\u05ea", "\u05d0\u05d6\u05d5\u05e8", "\u05d0\u05d7\u05d5\u05d6\u05ea \u05d1\u05e8\u05e7", "\u05d0\u05d7\u05d9\u05e2\u05d6\u05e8", "\u05d0\u05d9\u05dc\u05ea", "\u05d0\u05db\u05e1\u05d0\u05dc", "\u05d0\u05dc \u05e1\u05d9\u05d9\u05d3", "\u05d0\u05dc\u05d5\u05df \u05de\u05d5\u05e8\u05d4", "\u05d0\u05dc\u05d5\u05df \u05e9\u05d1\u05d5\u05ea", "\u05d0\u05dc\u05d9\u05db\u05d9\u05df", "\u05d0\u05dc\u05e2\u05d3", "\u05d0\u05dc\u05e2\u05d6\u05e8", "\u05d0\u05dc\u05e4\u05d9 \u05de\u05e0\u05e9\u05d4", "\u05d0\u05dc\u05e7\u05e0\u05d4", "\u05d0\u05e2\u05d1\u05dc\u05d9\u05df", "\u05d0\u05e4\u05e8\u05ea", "\u05d0\u05e8\u05d9\u05d0\u05dc", "\u05d0\u05e9\u05d3\u05d5\u05d3", "\u05d0\u05e9\u05e7\u05dc\u05d5\u05df", "\u05d1\u05d0\u05e7\u05d4 \u05d0\u05dc-\u05d2\u05e8\u05d1\u05d9\u05d4", "\u05d1\u05d0\u05e8 \u05d2\u05e0\u05d9\u05dd", "\u05d1\u05d0\u05e8 \u05d9\u05e2\u05e7\u05d1", "\u05d1\u05d0\u05e8 \u05e9\u05d1\u05e2", "\u05d1\u05d5\u05e2\u05d9\u05d9\u05e0\u05d4-\u05e0\u05d5\u05d2'\u05d9\u05d3\u05d0\u05ea", "\u05d1\u05d5\u05e7\u05e2\u05d0\u05ea\u05d0", "\u05d1\u05d9\u05e8 \u05d0\u05dc-\u05de\u05db\u05e1\u05d5\u05e8", "\u05d1\u05d9\u05e8 \u05d4\u05d3\u05d0\u05d2'", "\u05d1\u05d9\u05ea \u05d0\u05dc", "\u05d1\u05d9\u05ea \u05d0\u05e8\u05d9\u05d4-\u05e2\u05d5\u05e4\u05e8\u05d9\u05dd", "\u05d1\u05d9\u05ea \u05d2'\u05df", "\u05d1\u05d9\u05ea \u05d3\u05d2\u05df", "\u05d1\u05d9\u05ea \u05d7\u05e9\u05de\u05d5\u05e0\u05d0\u05d9", "\u05d1\u05d9\u05ea \u05d9\u05e6\u05d7\u05e7-\u05e9\u05e2\u05e8 \u05d7\u05e4\u05e8", "\u05d1\u05d9\u05ea \u05e9\u05d0\u05df", "\u05d1\u05d9\u05ea \u05e9\u05de\u05e9", "\u05d1\u05d9\u05ea\u05e8 \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05d1\u05e0\u05d9 \u05d1\u05e8\u05e7", "\u05d1\u05e0\u05d9 \u05e2\u05d9\"\u05e9", "\u05d1\u05e0\u05d9\u05de\u05d9\u05e0\u05d4-\u05d2\u05d1\u05e2\u05ea \u05e2\u05d3\u05d4", "\u05d1\u05e1\u05de\"\u05d4", "\u05d1\u05e1\u05de\u05ea \u05d8\u05d1\u05e2\u05d5\u05df", "\u05d1\u05e2\u05e0\u05d4", "\u05d1\u05e8\u05d5\u05db\u05d9\u05df", "\u05d1\u05e8\u05db\u05d4", "\u05d1\u05e8\u05e7\u05df", "\u05d1\u05e8\u05e7\u05ea", "\u05d1\u05ea \u05d7\u05e4\u05e8", "\u05d1\u05ea \u05d9\u05dd", "\u05d2'\u05d3\u05d9\u05d9\u05d3\u05d4-\u05de\u05db\u05e8", "\u05d2'\u05d5\u05dc\u05e1", "\u05d2'\u05dc\u05d2'\u05d5\u05dc\u05d9\u05d4", "\u05d2'\u05e1\u05e8 \u05d0-\u05d6\u05e8\u05e7\u05d0", "\u05d2'\u05e9 (\u05d2\u05d5\u05e9 \u05d7\u05dc\u05d1)", "\u05d2'\u05ea", "\u05d2\u05d1\u05e2 \u05d1\u05e0\u05d9\u05de\u05d9\u05df", "\u05d2\u05d1\u05e2\u05ea \u05d0\u05d1\u05e0\u05d9", "\u05d2\u05d1\u05e2\u05ea \u05d1\u05e8\u05e0\u05e8", "\u05d2\u05d1\u05e2\u05ea \u05d6\u05d0\u05d1", "\u05d2\u05d1\u05e2\u05ea \u05e9\u05de\u05d5\u05d0\u05dc", "\u05d2\u05d1\u05e2\u05ea\u05d9\u05d9\u05dd", "\u05d2\u05d3\u05e8\u05d4", "\u05d2\u05df \u05d9\u05d1\u05e0\u05d4", "\u05d2\u05df \u05e0\u05e8", "\u05d2\u05e0\u05d9 \u05de\u05d5\u05d3\u05d9\u05e2\u05d9\u05df", "\u05d2\u05e0\u05d9 \u05ea\u05e7\u05d5\u05d5\u05d4", "\u05d3\u05d0\u05dc\u05d9\u05ea \u05d0\u05dc-\u05db\u05e8\u05de\u05dc", "\u05d3\u05d1\u05d5\u05e8\u05d9\u05d9\u05d4", "\u05d3\u05d9\u05d9\u05e8 \u05d0\u05dc-\u05d0\u05e1\u05d3", "\u05d3\u05d9\u05d9\u05e8 \u05d7\u05e0\u05d0", "\u05d3\u05d9\u05de\u05d5\u05e0\u05d4", "\u05d4\u05d5\u05d3 \u05d4\u05e9\u05e8\u05d5\u05df", "\u05d4\u05d5\u05e9\u05e2\u05d9\u05d4", "\u05d4\u05e8 \u05d0\u05d3\u05e8", "\u05d4\u05e8\u05e6\u05dc\u05d9\u05d9\u05d4", "\u05d6\u05db\u05e8\u05d5\u05df \u05d9\u05e2\u05e7\u05d1", "\u05d6\u05de\u05e8", "\u05d6\u05e8\u05d6\u05d9\u05e8", "\u05d7\u05d3\u05e8\u05d4", "\u05d7\u05d5\u05dc\u05d5\u05df", "\u05d7\u05d5\u05e8\u05d4", "\u05d7\u05d5\u05e8\u05e4\u05d9\u05e9", "\u05d7\u05d9\u05e4\u05d4", "\u05d7\u05e6\u05d5\u05e8 \u05d4\u05d2\u05dc\u05d9\u05dc\u05d9\u05ea", "\u05d7\u05e8\u05d9\u05e9", "\u05d7\u05e9\u05de\u05d5\u05e0\u05d0\u05d9\u05dd", "\u05d8\u05d1\u05e8\u05d9\u05d4", "\u05d8\u05d5\u05d1\u05d0-\u05d6\u05e0\u05d2\u05e8\u05d9\u05d9\u05d4", "\u05d8\u05d5\u05e8\u05e2\u05d0\u05df", "\u05d8\u05d9\u05d9\u05d1\u05d4", "\u05d8\u05d9\u05e8\u05d4", "\u05d8\u05d9\u05e8\u05ea \u05db\u05e8\u05de\u05dc", "\u05d8\u05dc\u05de\u05d5\u05df", "\u05d8\u05de\u05e8\u05d4", "\u05d9\u05d0\u05e0\u05d5\u05d7-\u05d2'\u05ea", "\u05d9\u05d1\u05e0\u05d0\u05dc", "\u05d9\u05d1\u05e0\u05d4", "\u05d9\u05d3 \u05d1\u05e0\u05d9\u05de\u05d9\u05df", "\u05d9\u05d4\u05d5\u05d3", "\u05d9\u05e4\u05d9\u05e2", "\u05d9\u05e6\u05d4\u05e8", "\u05d9\u05e7\u05d9\u05e8", "\u05d9\u05e7\u05e0\u05e2\u05dd \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05d9\u05e8\u05d5\u05d7\u05dd", "\u05d9\u05e8\u05d5\u05e9\u05dc\u05d9\u05dd", "\u05d9\u05e8\u05db\u05d0", "\u05db\u05d0\u05d1\u05d5\u05dc", "\u05db\u05d0\u05d5\u05db\u05d1 \u05d0\u05d1\u05d5 \u05d0\u05dc-\u05d4\u05d9\u05d2'\u05d0", "\u05db\u05d5\u05db\u05d1 \u05d4\u05e9\u05d7\u05e8", "\u05db\u05d5\u05db\u05d1 \u05d9\u05d0\u05d9\u05e8", "\u05db\u05d5\u05db\u05d1 \u05d9\u05e2\u05e7\u05d1", "\u05db\u05e1\u05d9\u05e4\u05d4", "\u05db\u05e1\u05e8\u05d0-\u05e1\u05de\u05d9\u05e2", "\u05db\u05e2\u05d1\u05d9\u05d4-\u05d8\u05d1\u05d0\u05e9-\u05d7\u05d2'\u05d0\u05d2'\u05e8\u05d4", "\u05db\u05e4\u05e8 \u05d0\u05d3\u05d5\u05de\u05d9\u05dd", "\u05db\u05e4\u05e8 \u05d1\u05e8\u05d0", "\u05db\u05e4\u05e8 \u05d4\u05d0\u05d5\u05e8\u05e0\u05d9\u05dd", "\u05db\u05e4\u05e8 \u05d5\u05e8\u05d3\u05d9\u05dd", "\u05db\u05e4\u05e8 \u05d7\u05d1\"\u05d3", "\u05db\u05e4\u05e8 \u05d9\u05d0\u05e1\u05d9\u05e3", "\u05db\u05e4\u05e8 \u05d9\u05d5\u05e0\u05d4", "\u05db\u05e4\u05e8 \u05db\u05de\u05d0", "\u05db\u05e4\u05e8 \u05db\u05e0\u05d0", "\u05db\u05e4\u05e8 \u05de\u05e0\u05d3\u05d0", "\u05db\u05e4\u05e8 \u05de\u05e6\u05e8", "\u05db\u05e4\u05e8 \u05e1\u05d1\u05d0", "\u05db\u05e4\u05e8 \u05e7\u05d0\u05e1\u05dd", "\u05db\u05e4\u05e8 \u05e7\u05e8\u05e2", "\u05db\u05e4\u05e8 \u05ea\u05d1\u05d5\u05e8", "\u05db\u05e8\u05de\u05d9\u05d0\u05dc", "\u05dc\u05d4\u05d1\u05d9\u05dd", "\u05dc\u05d5\u05d3", "\u05dc\u05e4\u05d9\u05d3", "\u05dc\u05e7\u05d9\u05d4", "\u05de\u05d1\u05d5\u05d0 \u05d7\u05d5\u05e8\u05d5\u05df", "\u05de\u05d1\u05e9\u05e8\u05ea \u05e6\u05d9\u05d5\u05df", "\u05de\u05d2'\u05d3 \u05d0\u05dc-\u05db\u05e8\u05d5\u05dd", "\u05de\u05d2'\u05d3\u05dc \u05e9\u05de\u05e1", "\u05de\u05d2\u05d0\u05e8", "\u05de\u05d2\u05d3\u05dc", "\u05de\u05d2\u05d3\u05dc \u05d4\u05e2\u05de\u05e7", "\u05de\u05d5\u05d3\u05d9\u05e2\u05d9\u05df \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05de\u05d5\u05d3\u05d9\u05e2\u05d9\u05df-\u05de\u05db\u05d1\u05d9\u05dd-\u05e8\u05e2\u05d5\u05ea", "\u05de\u05d5\u05e7\u05d9\u05d9\u05d1\u05dc\u05d4", "\u05de\u05d6\u05db\u05e8\u05ea \u05d1\u05ea\u05d9\u05d4", "\u05de\u05d6\u05e8\u05e2\u05d4", "\u05de\u05d9\u05d9\u05e1\u05e8", "\u05de\u05d9\u05ea\u05e8", "\u05de\u05e1\u05e2\u05d3\u05d4", "\u05de\u05e2\u05d2\u05df \u05de\u05d9\u05db\u05d0\u05dc", "\u05de\u05e2\u05d9\u05dc\u05d9\u05d0", "\u05de\u05e2\u05dc\u05d4 \u05d0\u05d3\u05d5\u05de\u05d9\u05dd", "\u05de\u05e2\u05dc\u05d4 \u05de\u05db\u05de\u05e9", "\u05de\u05e2\u05dc\u05d4 \u05e2\u05d9\u05e8\u05d5\u05df", "\u05de\u05e2\u05dc\u05d5\u05ea-\u05ea\u05e8\u05e9\u05d9\u05d7\u05d0", "\u05de\u05e6\u05e4\u05d4 \u05d9\u05e8\u05d9\u05d7\u05d5", "\u05de\u05e6\u05e4\u05d4 \u05e8\u05de\u05d5\u05df", "\u05de\u05e8\u05db\u05d6 \u05e9\u05e4\u05d9\u05e8\u05d0", "\u05de\u05e9\u05d4\u05d3", "\u05de\u05ea\u05df", "\u05de\u05ea\u05ea\u05d9\u05d4\u05d5", "\u05e0\u05d0\u05e2\u05d5\u05e8\u05d4", "\u05e0\u05d4\u05e8\u05d9\u05d9\u05d4", "\u05e0\u05d5\u05d5\u05d4 \u05d3\u05e0\u05d9\u05d0\u05dc", "\u05e0\u05d5\u05e3 \u05d0\u05d9\u05d9\u05dc\u05d5\u05df", "\u05e0\u05d5\u05e3 \u05d4\u05d2\u05dc\u05d9\u05dc", "\u05e0\u05d5\u05e4\u05d9\u05ea", "\u05e0\u05d5\u05e7\u05d3\u05d9\u05dd", "\u05e0\u05d7\u05e3", "\u05e0\u05d9\u05d9\u05df", "\u05e0\u05d9\u05dc\"\u05d9", "\u05e0\u05d9\u05e6\u05df", "\u05e0\u05e1 \u05e6\u05d9\u05d5\u05e0\u05d4", "\u05e0\u05e2\u05dc\u05d4", "\u05e0\u05e6\u05e8\u05ea", "\u05e0\u05e9\u05e8", "\u05e0\u05ea\u05d9\u05d1\u05d5\u05ea", "\u05e0\u05ea\u05e0\u05d9\u05d4", "\u05e1\u05d0\u05d2'\u05d5\u05e8", "\u05e1\u05d1\u05d9\u05d5\u05df", "\u05e1\u05d5\u05dc\u05dd", "\u05e1\u05d7'\u05e0\u05d9\u05df", "\u05e1\u05dc\u05de\u05d4", "\u05e1\u05e2\u05d5\u05d4", "\u05e2'\u05d2'\u05e8", "\u05e2\u05d5\u05d6\u05d9\u05d9\u05e8", "\u05e2\u05d5\u05de\u05e8", "\u05e2\u05d9\u05d9\u05dc\u05d1\u05d5\u05df", "\u05e2\u05d9\u05dc\u05d5\u05d8", "\u05e2\u05d9\u05df \u05de\u05d0\u05d4\u05dc", "\u05e2\u05d9\u05df \u05e0\u05e7\u05d5\u05d1\u05d0", "\u05e2\u05d9\u05df \u05e7\u05e0\u05d9\u05d9\u05d0", "\u05e2\u05db\u05d5", "\u05e2\u05dc\u05d9", "\u05e2\u05dc\u05d9 \u05d6\u05d4\u05d1", "\u05e2\u05de\u05e0\u05d5\u05d0\u05dc", "\u05e2\u05e1\u05e4\u05d9\u05d0", "\u05e2\u05e4\u05d5\u05dc\u05d4", "\u05e2\u05e4\u05e8\u05d4", "\u05e2\u05e8\u05d0\u05d1\u05d4", "\u05e2\u05e8\u05d3", "\u05e2\u05e8\u05e2\u05e8\u05d4", "\u05e2\u05e8\u05e2\u05e8\u05d4-\u05d1\u05e0\u05d2\u05d1", "\u05e2\u05ea\u05dc\u05d9\u05ea", "\u05e4\u05d3\u05d5\u05d0\u05dc", "\u05e4\u05d5\u05e8\u05d9\u05d9\u05d3\u05d9\u05e1", "\u05e4\u05e1\u05d2\u05d5\u05ea", "\u05e4\u05e1\u05d5\u05d8\u05d4", "\u05e4\u05e7\u05d9\u05e2\u05d9\u05df (\u05d1\u05d5\u05e7\u05d9\u05d9\u05e2\u05d4)", "\u05e4\u05e8\u05d3\u05e1 \u05d7\u05e0\u05d4-\u05db\u05e8\u05db\u05d5\u05e8", "\u05e4\u05e8\u05d3\u05e1\u05d9\u05d9\u05d4", "\u05e4\u05ea\u05d7 \u05ea\u05e7\u05d5\u05d5\u05d4", "\u05e6\u05d5\u05e4\u05d9\u05dd", "\u05e6\u05d5\u05e8 \u05d4\u05d3\u05e1\u05d4", "\u05e6\u05d5\u05e8 \u05d9\u05e6\u05d7\u05e7", "\u05e6\u05d5\u05e8 \u05de\u05e9\u05d4", "\u05e6\u05e4\u05ea", "\u05e7\u05d3\u05d5\u05de\u05d9\u05dd", "\u05e7\u05d3\u05d9\u05de\u05d4-\u05e6\u05d5\u05e8\u05df", "\u05e7\u05d9\u05e1\u05e8\u05d9\u05d4", "\u05e7\u05dc\u05e0\u05e1\u05d5\u05d5\u05d4", "\u05e7\u05e6\u05d9\u05e8", "\u05e7\u05e6\u05e8 \u05d0-\u05e1\u05e8", "\u05e7\u05e6\u05e8\u05d9\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05d5\u05e0\u05d5", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05e8\u05d1\u05e2", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05ea\u05d0", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d1\u05d9\u05d0\u05dc\u05d9\u05e7", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d2\u05ea", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d8\u05d1\u05e2\u05d5\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d9\u05dd", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d9\u05e2\u05e8\u05d9\u05dd", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05de\u05d5\u05e6\u05e7\u05d9\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05de\u05dc\u05d0\u05db\u05d9", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05e2\u05e7\u05e8\u05d5\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05e9\u05de\u05d5\u05e0\u05d4", "\u05e7\u05e8\u05e0\u05d9 \u05e9\u05d5\u05de\u05e8\u05d5\u05df", "\u05e8\u05d0\u05de\u05d4", "\u05e8\u05d0\u05e9 \u05d4\u05e2\u05d9\u05df", "\u05e8\u05d0\u05e9 \u05e4\u05d9\u05e0\u05d4", "\u05e8\u05d0\u05e9\u05d5\u05df \u05dc\u05e6\u05d9\u05d5\u05df", "\u05e8\u05d1\u05d1\u05d4", "\u05e8\u05d4\u05d8", "\u05e8\u05d5\u05de\u05ea \u05d4\u05d9\u05d9\u05d1", "\u05e8\u05d7\u05d5\u05d1\u05d5\u05ea", "\u05e8\u05d9\u05d9\u05e0\u05d4", "\u05e8\u05db\u05e1\u05d9\u05dd", "\u05e8\u05de\u05dc\u05d4", "\u05e8\u05de\u05ea \u05d2\u05df", "\u05e8\u05de\u05ea \u05d4\u05e9\u05e8\u05d5\u05df", "\u05e8\u05de\u05ea \u05d9\u05e9\u05d9", "\u05e8\u05e2\u05e0\u05e0\u05d4", "\u05e9\u05d1\u05dc\u05d9 - \u05d0\u05d5\u05dd \u05d0\u05dc-\u05d2\u05e0\u05dd", "\u05e9\u05d2\u05d1-\u05e9\u05dc\u05d5\u05dd", "\u05e9\u05d3\u05e8\u05d5\u05ea", "\u05e9\u05d5\u05d4\u05dd", "\u05e9\u05d9\u05d9\u05d7' \u05d3\u05e0\u05d5\u05df", "\u05e9\u05d9\u05dc\u05d4", "\u05e9\u05dc\u05d5\u05de\u05d9", "\u05e9\u05de\u05e9\u05d9\u05ea", "\u05e9\u05e2\u05d1", "\u05e9\u05e4\u05e8\u05e2\u05dd", "\u05ea\u05dc \u05d0\u05d1\u05d9\u05d1 -\u05d9\u05e4\u05d5", "\u05ea\u05dc \u05de\u05d5\u05e0\u05d3", "\u05ea\u05dc \u05e9\u05d1\u05e2", "\u05ea\u05e4\u05e8\u05d7", "\u05ea\u05e7\u05d5\u05e2"], "cluster": [3.0, 3.0, 1.0, 2.0, 9.0, 5.0, 5.0, 2.0, 1.0, 3.0, 5.0, 5.0, 8.0, 7.0, 8.0, 4.0, 6.0, 3.0, 1.0, 4.0, 7.0, 7.0, 2.0, 7.0, 8.0, 8.0, 3.0, 7.0, 6.0, 5.0, 5.0, 4.0, 7.0, 7.0, 5.0, 3.0, 3.0, 2.0, 1.0, 4.0, 7.0, 4.0, 7.0, 9.0, 9.0, 4.0, 2.0, 2.0, 2.0, 5.0, 8.0, 3.0, 3.0, 3.0, 6.0, 3.0, 8.0, 4.0, 8.0, 5.0, 3.0, 5.0, 3.0, 2.0, 7.0, 5.0, 4.0, 8.0, 8.0, 4.0, 8.0, 9.0, 7.0, 7.0, 7.0, 3.0, 9.0, 5.0, 4.0, 4.0, 4.0, 4.0, 9.0, 8.0, 9.0, 8.0, 8.0, 4.0, 3.0, 6.0, 7.0, 1.0, 5.0, 7.0, 4.0, 5.0, 7.0, 3.0, 3.0, 3.0, 3.0, 5.0, 6.0, 5.0, 3.0, 4.0, 2.0, 7.0, 6.0, 7.0, 3.0, 3.0, 7.0, 7.0, 4.0, 2.0, 3.0, 3.0, 5.0, 4.0, 9.0, 2.0, 1.0, 3.0, 3.0, 7.0, 4.0, 9.0, 9.0, 4.0, 5.0, 7.0, 6.0, 3.0, 2.0, 3.0, 8.0, 4.0, 5.0, 8.0, 5.0, 9.0, 3.0, 9.0, 2.0, 5.0, 8.0, 3.0, 3.0, 3.0, 5.0, 4.0, 1.0, 8.0, 3.0, 8.0, 4.0, 4.0, 9.0, 3.0, 2.0, 7.0, 6.0, 5.0, 3.0, 5.0, 4.0, 3.0, 6.0, 3.0, 9.0, 3.0, 3.0, 6.0, 7.0, 8.0, 5.0, 9.0, 5.0, 3.0, 3.0, 7.0, 5.0, 8.0, 7.0, 3.0, 7.0, 3.0, 6.0, 4.0, 10.0, 3.0, 4.0, 3.0, 1.0, 3.0, 2.0, 9.0, 5.0, 2.0, 3.0, 2.0, 3.0, 4.0, 4.0, 7.0, 2.0, 5.0, 5.0, 6.0, 3.0, 3.0, 4.0, 1.0, 8.0, 7.0, 3.0, 6.0, 7.0, 5.0, 7.0, 9.0, 7.0, 7.0, 8.0, 8.0, 9.0, 2.0, 5.0, 8.0, 9.0, 3.0, 7.0, 1.0, 5.0, 9.0, 3.0, 6.0, 6.0, 4.0, 8.0, 5.0, 2.0, 7.0, 3.0, 5.0, 5.0, 6.0, 5.0, 7.0, 7.0, 7.0, 6.0, 2.0, 2.0, 7.0, 3.0, 2.0, 4.0, 8.0, 9.0, 8.0, 8.0, 3.0, 1.0, 5.0, 9.0, 3.0, 4.0, 6.0, 9.0, 3.0, 3.0, 8.0, 9.0, 1.0, 1.0, 6.0], "slope": 0.016994674848047554, "intercept": 5.403231611037752, "corr": 0.5752562998813429};
+const harediData = {"x": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 32.6, 3.98, 3.18, 0.0, 1.7, 0.0, 41.58, 0.8, 0.0, 0.0, 0.0, 0.0, 11.02, 95.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 22.7, 4.7, 0.0, 0.0, 2.95, 3.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.29, 76.0, 99.0, 93.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 29.65, 0.0, 4.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 23.17, 0.0, 0.0, 58.8, 0.0, 0.0, 1.48, 0.0, 0.0, 58.2, 6.25, 0.0, 0.0, 0.0, 0.0, 2.04, 0.0, 0.0, 0.0, 0.34, 10.8, 0.0, 0.0, 6.7, 5.0, 0.0, 0.0, 6.6, 25.6, 20.8, 0.0, 28.1, 0.0, 0.0, 0.0, 0.0, 1.93, 8.75, 0.0, 0.0, 52.4, 2.8, 28.85, 0.0, 0.0, 0.0, 0.0, 1.25, 13.75, 29.3, 0.0, 0.0, 0.0, 17.04, 0.0, 74.52, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 98.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.1, 0.0, 17.2, 0.0, 0.0, 17.49, 1.14, 0.0, 0.0, 0.0, 13.06, 19.2, 99.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.73, 0.0, 0.0, 3.75, 0.0, 0.0, 0.0, 0.0, 0.0, 95.76, 0.0, 1.36, 0.0, 0.0, 9.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 45.5, 8.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.59, 0.0, 0.0, 94.2, 0.0, 13.1, 0.0, 0.0, 35.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.68, 0.0, 11.9, 0.0, 0.0, 0.0, 0.0, 53.7, 0.0, 1.02, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 8.1, 0.0, 20.0, 0.0, 0.0, 97.6, 0.0, 30.5, 3.52, 1.25, 0.0, 0.0, 6.9, 0.0, 2.1, 0.0, 0.0, 0.0, 10.8, 0.0, 97.0, 1.82, 1.6, 1.59, 0.0, 1.02, 0.0, 0.0, 1.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.1, 0.0, 0.0, 97.9, 0.0], "y": [8.04, 7.82, 5.87, 9.62, 3.45, 3.69, 4.9, 6.8, 7.7, 8.82, 8.11, 7.21, 3.51, 6.23, 3.5, 4.29, 7.92, 7.03, 5.56, 2.95, 4.18, 4.0, 4.94, 2.89, 4.18, 2.49, 7.71, 4.08, 5.41, 6.83, 8.21, 6.11, 2.78, 4.07, 10.28, 7.82, 7.85, 8.12, 4.74, 3.82, 4.27, 6.81, 5.15, 3.01, 3.18, 9.9, 5.86, 5.77, 6.77, 7.03, 4.21, 5.12, 8.02, 7.93, 0.51, 2.28, 4.53, 4.19, 3.41, 8.27, 7.12, 6.41, 7.0, 10.14, 4.68, 4.52, 5.2, 5.38, 3.55, 4.69, 4.04, 4.04, 4.21, 4.22, 4.76, 8.0, 3.94, 7.83, 7.09, 6.54, 8.72, 9.51, 4.84, 2.11, 2.25, 5.12, 4.39, 5.12, 8.83, 7.52, 7.33, 6.64, 4.84, 8.68, 11.11, 6.81, 4.82, 14.82, 9.07, 6.38, 6.53, 7.61, 9.24, 2.35, 8.02, 6.66, 13.27, 5.71, 2.95, 5.11, 6.66, 3.2, 2.19, 5.57, 8.21, 5.44, 9.3, 8.71, 6.02, 3.19, 3.91, 4.87, 6.17, 6.98, 6.88, 2.4, 6.36, 1.81, 4.54, 4.05, 7.02, 5.74, 6.55, 7.93, 7.7, 6.78, 6.63, 6.6, 6.22, 5.02, 7.79, 3.05, 7.39, 3.13, 6.4, 3.73, 4.92, 5.97, 7.61, 10.29, 13.38, 10.52, 5.05, 3.18, 7.47, 4.06, 5.89, 5.66, 2.77, 7.34, 6.5, 4.25, 5.01, 3.74, 5.99, 6.45, 4.6, 8.55, 3.8, 7.86, 2.37, 5.21, 6.04, 6.89, 4.08, 3.04, 9.12, 3.14, 3.59, 8.69, 7.17, 2.29, 3.15, 4.34, 4.08, 7.88, 7.61, 7.38, 7.29, 8.17, 2.42, 8.82, 7.53, 8.56, 4.86, 4.96, 8.17, 4.49, 8.95, 8.07, 7.48, 3.75, 8.61, 8.38, 2.58, 1.71, 6.99, 8.71, 11.22, 2.96, 7.9, 10.38, 6.12, 7.45, 4.57, 2.39, 6.11, 3.29, 4.85, 5.39, 6.67, 3.32, 6.33, 4.59, 2.94, 3.39, 2.77, 12.7, 3.59, 4.59, 3.26, 6.97, 6.1, 3.65, 9.61, 4.25, 6.24, 9.26, 8.75, 8.7, 7.24, 10.22, 4.1, 8.11, 9.09, 7.69, 11.06, 5.39, 7.7, 5.11, 9.34, 5.72, 2.1, 7.05, 7.34, 6.38, 8.1, 6.9, 8.08, 5.27, 4.56, 4.46, 4.72, 6.83, 6.1, 7.36, 2.91, 5.93, 3.45, 6.84, 2.68, 9.05, 8.36, 5.28, 3.78, 7.56, 7.98, 3.62], "names": ["\u05d0\u05d1\u05d5 \u05d2\u05d5\u05e9", "\u05d0\u05d1\u05d5 \u05e1\u05e0\u05d0\u05df", "\u05d0\u05d1\u05d5 \u05ea\u05dc\u05d5\u05dc", "\u05d0\u05d1\u05d8\u05d9\u05df", "\u05d0\u05d1\u05df \u05d9\u05d4\u05d5\u05d3\u05d4", "\u05d0\u05d1\u05df \u05e9\u05de\u05d5\u05d0\u05dc", "\u05d0\u05d1\u05e0\u05d9 \u05d7\u05e4\u05e5", "\u05d0\u05d5\u05dd \u05d0\u05dc-\u05e4\u05d7\u05dd", "\u05d0\u05d5\u05dd \u05d1\u05d8\u05d9\u05df", "\u05d0\u05d5\u05e4\u05e7\u05d9\u05dd", "\u05d0\u05d5\u05e8 \u05d9\u05d4\u05d5\u05d3\u05d4", "\u05d0\u05d5\u05e8 \u05e2\u05e7\u05d9\u05d1\u05d0", "\u05d0\u05d5\u05e8\u05e0\u05d9\u05ea", "\u05d0\u05d6\u05d5\u05e8", "\u05d0\u05d7\u05d5\u05d6\u05ea \u05d1\u05e8\u05e7", "\u05d0\u05d7\u05d9\u05e2\u05d6\u05e8", "\u05d0\u05d9\u05dc\u05ea", "\u05d0\u05db\u05e1\u05d0\u05dc", "\u05d0\u05dc \u05e1\u05d9\u05d9\u05d3", "\u05d0\u05dc\u05d5\u05df \u05de\u05d5\u05e8\u05d4", "\u05d0\u05dc\u05d5\u05df \u05e9\u05d1\u05d5\u05ea", "\u05d0\u05dc\u05d9\u05db\u05d9\u05df", "\u05d0\u05dc\u05e2\u05d3", "\u05d0\u05dc\u05e2\u05d6\u05e8", "\u05d0\u05dc\u05e4\u05d9 \u05de\u05e0\u05e9\u05d4", "\u05d0\u05dc\u05e7\u05e0\u05d4", "\u05d0\u05e2\u05d1\u05dc\u05d9\u05df", "\u05d0\u05e4\u05e8\u05ea", "\u05d0\u05e8\u05d9\u05d0\u05dc", "\u05d0\u05e9\u05d3\u05d5\u05d3", "\u05d0\u05e9\u05e7\u05dc\u05d5\u05df", "\u05d1\u05d0\u05e7\u05d4 \u05d0\u05dc-\u05d2\u05e8\u05d1\u05d9\u05d4", "\u05d1\u05d0\u05e8 \u05d2\u05e0\u05d9\u05dd", "\u05d1\u05d0\u05e8 \u05d9\u05e2\u05e7\u05d1", "\u05d1\u05d0\u05e8 \u05e9\u05d1\u05e2", "\u05d1\u05d5\u05e2\u05d9\u05d9\u05e0\u05d4-\u05e0\u05d5\u05d2'\u05d9\u05d3\u05d0\u05ea", "\u05d1\u05d5\u05e7\u05e2\u05d0\u05ea\u05d0", "\u05d1\u05d9\u05e8 \u05d0\u05dc-\u05de\u05db\u05e1\u05d5\u05e8", "\u05d1\u05d9\u05e8 \u05d4\u05d3\u05d0\u05d2'", "\u05d1\u05d9\u05ea \u05d0\u05dc", "\u05d1\u05d9\u05ea \u05d0\u05e8\u05d9\u05d4-\u05e2\u05d5\u05e4\u05e8\u05d9\u05dd", "\u05d1\u05d9\u05ea \u05d2'\u05df", "\u05d1\u05d9\u05ea \u05d3\u05d2\u05df", "\u05d1\u05d9\u05ea \u05d7\u05e9\u05de\u05d5\u05e0\u05d0\u05d9", "\u05d1\u05d9\u05ea \u05d9\u05e6\u05d7\u05e7-\u05e9\u05e2\u05e8 \u05d7\u05e4\u05e8", "\u05d1\u05d9\u05ea \u05e9\u05d0\u05df", "\u05d1\u05d9\u05ea \u05e9\u05de\u05e9", "\u05d1\u05d9\u05ea\u05e8 \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05d1\u05e0\u05d9 \u05d1\u05e8\u05e7", "\u05d1\u05e0\u05d9 \u05e2\u05d9\"\u05e9", "\u05d1\u05e0\u05d9\u05de\u05d9\u05e0\u05d4-\u05d2\u05d1\u05e2\u05ea \u05e2\u05d3\u05d4", "\u05d1\u05e1\u05de\"\u05d4", "\u05d1\u05e1\u05de\u05ea \u05d8\u05d1\u05e2\u05d5\u05df", "\u05d1\u05e2\u05e0\u05d4", "\u05d1\u05e8\u05d5\u05db\u05d9\u05df", "\u05d1\u05e8\u05db\u05d4", "\u05d1\u05e8\u05e7\u05df", "\u05d1\u05e8\u05e7\u05ea", "\u05d1\u05ea \u05d7\u05e4\u05e8", "\u05d1\u05ea \u05d9\u05dd", "\u05d2'\u05d3\u05d9\u05d9\u05d3\u05d4-\u05de\u05db\u05e8", "\u05d2'\u05d5\u05dc\u05e1", "\u05d2'\u05dc\u05d2'\u05d5\u05dc\u05d9\u05d4", "\u05d2'\u05e1\u05e8 \u05d0-\u05d6\u05e8\u05e7\u05d0", "\u05d2'\u05e9 (\u05d2\u05d5\u05e9 \u05d7\u05dc\u05d1)", "\u05d2'\u05ea", "\u05d2\u05d1\u05e2 \u05d1\u05e0\u05d9\u05de\u05d9\u05df", "\u05d2\u05d1\u05e2\u05ea \u05d0\u05d1\u05e0\u05d9", "\u05d2\u05d1\u05e2\u05ea \u05d1\u05e8\u05e0\u05e8", "\u05d2\u05d1\u05e2\u05ea \u05d6\u05d0\u05d1", "\u05d2\u05d1\u05e2\u05ea \u05e9\u05de\u05d5\u05d0\u05dc", "\u05d2\u05d1\u05e2\u05ea\u05d9\u05d9\u05dd", "\u05d2\u05d3\u05e8\u05d4", "\u05d2\u05df \u05d9\u05d1\u05e0\u05d4", "\u05d2\u05df \u05e0\u05e8", "\u05d2\u05e0\u05d9 \u05de\u05d5\u05d3\u05d9\u05e2\u05d9\u05df", "\u05d2\u05e0\u05d9 \u05ea\u05e7\u05d5\u05d5\u05d4", "\u05d3\u05d0\u05dc\u05d9\u05ea \u05d0\u05dc-\u05db\u05e8\u05de\u05dc", "\u05d3\u05d1\u05d5\u05e8\u05d9\u05d9\u05d4", "\u05d3\u05d9\u05d9\u05e8 \u05d0\u05dc-\u05d0\u05e1\u05d3", "\u05d3\u05d9\u05d9\u05e8 \u05d7\u05e0\u05d0", "\u05d3\u05d9\u05de\u05d5\u05e0\u05d4", "\u05d4\u05d5\u05d3 \u05d4\u05e9\u05e8\u05d5\u05df", "\u05d4\u05d5\u05e9\u05e2\u05d9\u05d4", "\u05d4\u05e8 \u05d0\u05d3\u05e8", "\u05d4\u05e8\u05e6\u05dc\u05d9\u05d9\u05d4", "\u05d6\u05db\u05e8\u05d5\u05df \u05d9\u05e2\u05e7\u05d1", "\u05d6\u05de\u05e8", "\u05d6\u05e8\u05d6\u05d9\u05e8", "\u05d7\u05d3\u05e8\u05d4", "\u05d7\u05d5\u05dc\u05d5\u05df", "\u05d7\u05d5\u05e8\u05d4", "\u05d7\u05d5\u05e8\u05e4\u05d9\u05e9", "\u05d7\u05d9\u05e4\u05d4", "\u05d7\u05e6\u05d5\u05e8 \u05d4\u05d2\u05dc\u05d9\u05dc\u05d9\u05ea", "\u05d7\u05e8\u05d9\u05e9", "\u05d7\u05e9\u05de\u05d5\u05e0\u05d0\u05d9\u05dd", "\u05d8\u05d1\u05e8\u05d9\u05d4", "\u05d8\u05d5\u05d1\u05d0-\u05d6\u05e0\u05d2\u05e8\u05d9\u05d9\u05d4", "\u05d8\u05d5\u05e8\u05e2\u05d0\u05df", "\u05d8\u05d9\u05d9\u05d1\u05d4", "\u05d8\u05d9\u05e8\u05d4", "\u05d8\u05d9\u05e8\u05ea \u05db\u05e8\u05de\u05dc", "\u05d8\u05dc\u05de\u05d5\u05df", "\u05d8\u05de\u05e8\u05d4", "\u05d9\u05d0\u05e0\u05d5\u05d7-\u05d2'\u05ea", "\u05d9\u05d1\u05e0\u05d0\u05dc", "\u05d9\u05d1\u05e0\u05d4", "\u05d9\u05d3 \u05d1\u05e0\u05d9\u05de\u05d9\u05df", "\u05d9\u05d4\u05d5\u05d3", "\u05d9\u05e4\u05d9\u05e2", "\u05d9\u05e6\u05d4\u05e8", "\u05d9\u05e7\u05d9\u05e8", "\u05d9\u05e7\u05e0\u05e2\u05dd \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05d9\u05e8\u05d5\u05d7\u05dd", "\u05d9\u05e8\u05d5\u05e9\u05dc\u05d9\u05dd", "\u05d9\u05e8\u05db\u05d0", "\u05db\u05d0\u05d1\u05d5\u05dc", "\u05db\u05d0\u05d5\u05db\u05d1 \u05d0\u05d1\u05d5 \u05d0\u05dc-\u05d4\u05d9\u05d2'\u05d0", "\u05db\u05d5\u05db\u05d1 \u05d4\u05e9\u05d7\u05e8", "\u05db\u05d5\u05db\u05d1 \u05d9\u05d0\u05d9\u05e8", "\u05db\u05d5\u05db\u05d1 \u05d9\u05e2\u05e7\u05d1", "\u05db\u05e1\u05d9\u05e4\u05d4", "\u05db\u05e1\u05e8\u05d0-\u05e1\u05de\u05d9\u05e2", "\u05db\u05e2\u05d1\u05d9\u05d4-\u05d8\u05d1\u05d0\u05e9-\u05d7\u05d2'\u05d0\u05d2'\u05e8\u05d4", "\u05db\u05e4\u05e8 \u05d0\u05d3\u05d5\u05de\u05d9\u05dd", "\u05db\u05e4\u05e8 \u05d1\u05e8\u05d0", "\u05db\u05e4\u05e8 \u05d4\u05d0\u05d5\u05e8\u05e0\u05d9\u05dd", "\u05db\u05e4\u05e8 \u05d5\u05e8\u05d3\u05d9\u05dd", "\u05db\u05e4\u05e8 \u05d7\u05d1\"\u05d3", "\u05db\u05e4\u05e8 \u05d9\u05d0\u05e1\u05d9\u05e3", "\u05db\u05e4\u05e8 \u05d9\u05d5\u05e0\u05d4", "\u05db\u05e4\u05e8 \u05db\u05de\u05d0", "\u05db\u05e4\u05e8 \u05db\u05e0\u05d0", "\u05db\u05e4\u05e8 \u05de\u05e0\u05d3\u05d0", "\u05db\u05e4\u05e8 \u05de\u05e6\u05e8", "\u05db\u05e4\u05e8 \u05e1\u05d1\u05d0", "\u05db\u05e4\u05e8 \u05e7\u05d0\u05e1\u05dd", "\u05db\u05e4\u05e8 \u05e7\u05e8\u05e2", "\u05db\u05e4\u05e8 \u05ea\u05d1\u05d5\u05e8", "\u05db\u05e8\u05de\u05d9\u05d0\u05dc", "\u05dc\u05d4\u05d1\u05d9\u05dd", "\u05dc\u05d5\u05d3", "\u05dc\u05e4\u05d9\u05d3", "\u05dc\u05e7\u05d9\u05d4", "\u05de\u05d1\u05d5\u05d0 \u05d7\u05d5\u05e8\u05d5\u05df", "\u05de\u05d1\u05e9\u05e8\u05ea \u05e6\u05d9\u05d5\u05df", "\u05de\u05d2'\u05d3 \u05d0\u05dc-\u05db\u05e8\u05d5\u05dd", "\u05de\u05d2'\u05d3\u05dc \u05e9\u05de\u05e1", "\u05de\u05d2\u05d0\u05e8", "\u05de\u05d2\u05d3\u05dc", "\u05de\u05d2\u05d3\u05dc \u05d4\u05e2\u05de\u05e7", "\u05de\u05d5\u05d3\u05d9\u05e2\u05d9\u05df \u05e2\u05d9\u05dc\u05d9\u05ea", "\u05de\u05d5\u05d3\u05d9\u05e2\u05d9\u05df-\u05de\u05db\u05d1\u05d9\u05dd-\u05e8\u05e2\u05d5\u05ea", "\u05de\u05d5\u05e7\u05d9\u05d9\u05d1\u05dc\u05d4", "\u05de\u05d6\u05db\u05e8\u05ea \u05d1\u05ea\u05d9\u05d4", "\u05de\u05d6\u05e8\u05e2\u05d4", "\u05de\u05d9\u05d9\u05e1\u05e8", "\u05de\u05d9\u05ea\u05e8", "\u05de\u05e1\u05e2\u05d3\u05d4", "\u05de\u05e2\u05d2\u05df \u05de\u05d9\u05db\u05d0\u05dc", "\u05de\u05e2\u05d9\u05dc\u05d9\u05d0", "\u05de\u05e2\u05dc\u05d4 \u05d0\u05d3\u05d5\u05de\u05d9\u05dd", "\u05de\u05e2\u05dc\u05d4 \u05de\u05db\u05de\u05e9", "\u05de\u05e2\u05dc\u05d4 \u05e2\u05d9\u05e8\u05d5\u05df", "\u05de\u05e2\u05dc\u05d5\u05ea-\u05ea\u05e8\u05e9\u05d9\u05d7\u05d0", "\u05de\u05e6\u05e4\u05d4 \u05d9\u05e8\u05d9\u05d7\u05d5", "\u05de\u05e6\u05e4\u05d4 \u05e8\u05de\u05d5\u05df", "\u05de\u05e8\u05db\u05d6 \u05e9\u05e4\u05d9\u05e8\u05d0", "\u05de\u05e9\u05d4\u05d3", "\u05de\u05ea\u05df", "\u05de\u05ea\u05ea\u05d9\u05d4\u05d5", "\u05e0\u05d0\u05e2\u05d5\u05e8\u05d4", "\u05e0\u05d4\u05e8\u05d9\u05d9\u05d4", "\u05e0\u05d5\u05d5\u05d4 \u05d3\u05e0\u05d9\u05d0\u05dc", "\u05e0\u05d5\u05e3 \u05d0\u05d9\u05d9\u05dc\u05d5\u05df", "\u05e0\u05d5\u05e3 \u05d4\u05d2\u05dc\u05d9\u05dc", "\u05e0\u05d5\u05e4\u05d9\u05ea", "\u05e0\u05d5\u05e7\u05d3\u05d9\u05dd", "\u05e0\u05d7\u05e3", "\u05e0\u05d9\u05d9\u05df", "\u05e0\u05d9\u05dc\"\u05d9", "\u05e0\u05d9\u05e6\u05df", "\u05e0\u05e1 \u05e6\u05d9\u05d5\u05e0\u05d4", "\u05e0\u05e2\u05dc\u05d4", "\u05e0\u05e6\u05e8\u05ea", "\u05e0\u05e9\u05e8", "\u05e0\u05ea\u05d9\u05d1\u05d5\u05ea", "\u05e0\u05ea\u05e0\u05d9\u05d4", "\u05e1\u05d0\u05d2'\u05d5\u05e8", "\u05e1\u05d1\u05d9\u05d5\u05df", "\u05e1\u05d5\u05dc\u05dd", "\u05e1\u05d7'\u05e0\u05d9\u05df", "\u05e1\u05dc\u05de\u05d4", "\u05e1\u05e2\u05d5\u05d4", "\u05e2'\u05d2'\u05e8", "\u05e2\u05d5\u05d6\u05d9\u05d9\u05e8", "\u05e2\u05d5\u05de\u05e8", "\u05e2\u05d9\u05d9\u05dc\u05d1\u05d5\u05df", "\u05e2\u05d9\u05dc\u05d5\u05d8", "\u05e2\u05d9\u05df \u05de\u05d0\u05d4\u05dc", "\u05e2\u05d9\u05df \u05e0\u05e7\u05d5\u05d1\u05d0", "\u05e2\u05d9\u05df \u05e7\u05e0\u05d9\u05d9\u05d0", "\u05e2\u05db\u05d5", "\u05e2\u05dc\u05d9", "\u05e2\u05dc\u05d9 \u05d6\u05d4\u05d1", "\u05e2\u05de\u05e0\u05d5\u05d0\u05dc", "\u05e2\u05e1\u05e4\u05d9\u05d0", "\u05e2\u05e4\u05d5\u05dc\u05d4", "\u05e2\u05e4\u05e8\u05d4", "\u05e2\u05e8\u05d0\u05d1\u05d4", "\u05e2\u05e8\u05d3", "\u05e2\u05e8\u05e2\u05e8\u05d4", "\u05e2\u05e8\u05e2\u05e8\u05d4-\u05d1\u05e0\u05d2\u05d1", "\u05e2\u05ea\u05dc\u05d9\u05ea", "\u05e4\u05d3\u05d5\u05d0\u05dc", "\u05e4\u05d5\u05e8\u05d9\u05d9\u05d3\u05d9\u05e1", "\u05e4\u05e1\u05d2\u05d5\u05ea", "\u05e4\u05e1\u05d5\u05d8\u05d4", "\u05e4\u05e7\u05d9\u05e2\u05d9\u05df (\u05d1\u05d5\u05e7\u05d9\u05d9\u05e2\u05d4)", "\u05e4\u05e8\u05d3\u05e1 \u05d7\u05e0\u05d4-\u05db\u05e8\u05db\u05d5\u05e8", "\u05e4\u05e8\u05d3\u05e1\u05d9\u05d9\u05d4", "\u05e4\u05ea\u05d7 \u05ea\u05e7\u05d5\u05d5\u05d4", "\u05e6\u05d5\u05e4\u05d9\u05dd", "\u05e6\u05d5\u05e8 \u05d4\u05d3\u05e1\u05d4", "\u05e6\u05d5\u05e8 \u05d9\u05e6\u05d7\u05e7", "\u05e6\u05d5\u05e8 \u05de\u05e9\u05d4", "\u05e6\u05e4\u05ea", "\u05e7\u05d3\u05d5\u05de\u05d9\u05dd", "\u05e7\u05d3\u05d9\u05de\u05d4-\u05e6\u05d5\u05e8\u05df", "\u05e7\u05d9\u05e1\u05e8\u05d9\u05d4", "\u05e7\u05dc\u05e0\u05e1\u05d5\u05d5\u05d4", "\u05e7\u05e6\u05d9\u05e8", "\u05e7\u05e6\u05e8 \u05d0-\u05e1\u05e8", "\u05e7\u05e6\u05e8\u05d9\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05d5\u05e0\u05d5", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05e8\u05d1\u05e2", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d0\u05ea\u05d0", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d1\u05d9\u05d0\u05dc\u05d9\u05e7", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d2\u05ea", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d8\u05d1\u05e2\u05d5\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d9\u05dd", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05d9\u05e2\u05e8\u05d9\u05dd", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05de\u05d5\u05e6\u05e7\u05d9\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05de\u05dc\u05d0\u05db\u05d9", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05e2\u05e7\u05e8\u05d5\u05df", "\u05e7\u05e8\u05d9\u05d9\u05ea \u05e9\u05de\u05d5\u05e0\u05d4", "\u05e7\u05e8\u05e0\u05d9 \u05e9\u05d5\u05de\u05e8\u05d5\u05df", "\u05e8\u05d0\u05de\u05d4", "\u05e8\u05d0\u05e9 \u05d4\u05e2\u05d9\u05df", "\u05e8\u05d0\u05e9 \u05e4\u05d9\u05e0\u05d4", "\u05e8\u05d0\u05e9\u05d5\u05df \u05dc\u05e6\u05d9\u05d5\u05df", "\u05e8\u05d1\u05d1\u05d4", "\u05e8\u05d4\u05d8", "\u05e8\u05d5\u05de\u05ea \u05d4\u05d9\u05d9\u05d1", "\u05e8\u05d7\u05d5\u05d1\u05d5\u05ea", "\u05e8\u05d9\u05d9\u05e0\u05d4", "\u05e8\u05db\u05e1\u05d9\u05dd", "\u05e8\u05de\u05dc\u05d4", "\u05e8\u05de\u05ea \u05d2\u05df", "\u05e8\u05de\u05ea \u05d4\u05e9\u05e8\u05d5\u05df", "\u05e8\u05de\u05ea \u05d9\u05e9\u05d9", "\u05e8\u05e2\u05e0\u05e0\u05d4", "\u05e9\u05d1\u05dc\u05d9 - \u05d0\u05d5\u05dd \u05d0\u05dc-\u05d2\u05e0\u05dd", "\u05e9\u05d2\u05d1-\u05e9\u05dc\u05d5\u05dd", "\u05e9\u05d3\u05e8\u05d5\u05ea", "\u05e9\u05d5\u05d4\u05dd", "\u05e9\u05d9\u05d9\u05d7' \u05d3\u05e0\u05d5\u05df", "\u05e9\u05d9\u05dc\u05d4", "\u05e9\u05dc\u05d5\u05de\u05d9", "\u05e9\u05de\u05e9\u05d9\u05ea", "\u05e9\u05e2\u05d1", "\u05e9\u05e4\u05e8\u05e2\u05dd", "\u05ea\u05dc \u05d0\u05d1\u05d9\u05d1 -\u05d9\u05e4\u05d5", "\u05ea\u05dc \u05de\u05d5\u05e0\u05d3", "\u05ea\u05dc \u05e9\u05d1\u05e2", "\u05ea\u05e4\u05e8\u05d7", "\u05ea\u05e7\u05d5\u05e2"], "cluster": [3.0, 3.0, 1.0, 2.0, 9.0, 5.0, 5.0, 2.0, 1.0, 3.0, 5.0, 5.0, 8.0, 7.0, 8.0, 4.0, 6.0, 3.0, 1.0, 4.0, 7.0, 7.0, 2.0, 7.0, 8.0, 8.0, 3.0, 7.0, 6.0, 5.0, 5.0, 4.0, 7.0, 7.0, 5.0, 3.0, 3.0, 2.0, 1.0, 4.0, 7.0, 4.0, 7.0, 9.0, 9.0, 4.0, 2.0, 2.0, 2.0, 5.0, 8.0, 3.0, 3.0, 3.0, 6.0, 3.0, 8.0, 4.0, 8.0, 5.0, 3.0, 5.0, 3.0, 2.0, 7.0, 5.0, 4.0, 8.0, 8.0, 4.0, 8.0, 9.0, 7.0, 7.0, 7.0, 3.0, 9.0, 5.0, 4.0, 4.0, 4.0, 4.0, 9.0, 8.0, 9.0, 8.0, 8.0, 4.0, 3.0, 6.0, 7.0, 1.0, 5.0, 7.0, 4.0, 5.0, 7.0, 3.0, 3.0, 3.0, 3.0, 5.0, 6.0, 5.0, 3.0, 4.0, 2.0, 7.0, 6.0, 7.0, 3.0, 3.0, 7.0, 7.0, 4.0, 2.0, 3.0, 3.0, 5.0, 4.0, 9.0, 2.0, 1.0, 3.0, 3.0, 7.0, 4.0, 9.0, 9.0, 4.0, 5.0, 7.0, 6.0, 3.0, 2.0, 3.0, 8.0, 4.0, 5.0, 8.0, 5.0, 9.0, 3.0, 9.0, 2.0, 5.0, 8.0, 3.0, 3.0, 3.0, 5.0, 4.0, 1.0, 8.0, 3.0, 8.0, 4.0, 4.0, 9.0, 3.0, 2.0, 7.0, 6.0, 5.0, 3.0, 5.0, 4.0, 3.0, 6.0, 3.0, 9.0, 3.0, 3.0, 6.0, 7.0, 8.0, 5.0, 9.0, 5.0, 3.0, 3.0, 7.0, 5.0, 8.0, 7.0, 3.0, 7.0, 3.0, 6.0, 4.0, 10.0, 3.0, 4.0, 3.0, 1.0, 3.0, 2.0, 9.0, 5.0, 2.0, 3.0, 2.0, 3.0, 4.0, 4.0, 7.0, 2.0, 5.0, 5.0, 6.0, 3.0, 3.0, 4.0, 1.0, 8.0, 7.0, 3.0, 6.0, 7.0, 5.0, 7.0, 9.0, 7.0, 7.0, 8.0, 8.0, 9.0, 2.0, 5.0, 8.0, 9.0, 3.0, 7.0, 1.0, 5.0, 9.0, 3.0, 6.0, 6.0, 4.0, 8.0, 5.0, 2.0, 7.0, 3.0, 5.0, 5.0, 6.0, 5.0, 7.0, 7.0, 7.0, 6.0, 2.0, 2.0, 7.0, 3.0, 2.0, 4.0, 8.0, 9.0, 8.0, 8.0, 3.0, 1.0, 5.0, 9.0, 3.0, 4.0, 6.0, 9.0, 3.0, 3.0, 8.0, 9.0, 1.0, 1.0, 6.0], "slope": 0.011494560143353748, "intercept": 5.939733432474738, "corr": 0.22204769455398757};
+const heatmapData = {"z": [[1.0, 0.888, -0.526, -0.056, 0.724, -0.588, -0.614, 0.887, 0.353], [0.888, 1.0, -0.624, 0.003, 0.834, -0.598, -0.702, 0.943, 0.433], [-0.526, -0.624, 1.0, -0.28, -0.851, 0.575, 0.649, -0.488, -0.45], [-0.056, 0.003, -0.28, 1.0, 0.013, 0.222, 0.038, -0.103, 0.251], [0.724, 0.834, -0.851, 0.013, 1.0, -0.599, -0.668, 0.729, 0.405], [-0.588, -0.598, 0.575, 0.222, -0.599, 1.0, 0.716, -0.539, -0.337], [-0.614, -0.702, 0.649, 0.038, -0.668, 0.716, 1.0, -0.686, -0.526], [0.887, 0.943, -0.488, -0.103, 0.729, -0.539, -0.686, 1.0, 0.434], [0.353, 0.433, -0.45, 0.251, 0.405, -0.337, -0.526, 0.434, 1.0]], "x": ["Academic Degree %", "Avg Monthly Salary", "Arab Pop %", "Haredi Pop %", "Jewish Non-Haredi %", "General Disability Rate", "Income Support Rate", "SE Index Score", "Peripherality Score"], "y": ["Academic Degree %", "Avg Monthly Salary", "Arab Pop %", "Haredi Pop %", "Jewish Non-Haredi %", "General Disability Rate", "Income Support Rate", "SE Index Score", "Peripherality Score"]};
+
+const layoutDefaults = {
+  paper_bgcolor: "rgba(0,0,0,0)",
+  plot_bgcolor: "rgba(0,0,0,0)",
+  font: { color: "#e6edf3", family: "IBM Plex Sans" },
+  margin: { l: 70, r: 30, t: 60, b: 60 },
+  hovermode: "closest",
+  hoverdistance: 20
+};
+
+const colorbarOutside = {
+  x: 1.05,
+  xanchor: "left",
+  len: 0.8,
+  thickness: 14,
+  tickfont: { size: 10 }
+};
+
+function range(arr) {
+  let min = Infinity;
+  let max = -Infinity;
+  arr.forEach(v => {
+    if (v < min) min = v;
+    if (v > max) max = v;
+  });
+  return [min, max];
+}
+
+function linePoints(xArr, slope, intercept) {
+  const [minX, maxX] = range(xArr);
+  const xLine = [minX, maxX];
+  const yLine = xLine.map(x => slope * x + intercept);
+  return { xLine, yLine };
+}
+
+function scatterWithTrend(divId, data, xTitle, yTitle, chartTitle, corrLabel) {
+  const line = linePoints(data.x, data.slope, data.intercept);
+  Plotly.newPlot(divId, [
+    {
+      x: data.x,
+      y: data.y,
+      mode: "markers",
+      type: "scatter",
+      text: data.names,
+      cliponaxis: true,
+      marker: {
+        color: data.cluster,
+        colorscale: "Viridis",
+        size: 9,
+        showscale: true,
+        colorbar: {
+          ...colorbarOutside,
+          title: { text: "SE Cluster" },
+          len: 0.85
+        },
+        opacity: 0.85,
+        line: { color: "rgba(255,255,255,0.5)", width: 0.7 }
+      },
+      hovertemplate: "<b>%{text}</b><br>" + xTitle + ": %{x}<br>" + yTitle + ": %{y:.2f}%<extra></extra>"
+    },
+    {
+      x: line.xLine,
+      y: line.yLine,
+      mode: "lines",
+      type: "scatter",
+      line: { color: "#ff6b6b", width: 3 },
+      hoverinfo: "skip",
+      showlegend: false
+    }
+  ], {
+    ...layoutDefaults,
+    title: chartTitle,
+    xaxis: {
+      title: { text: xTitle, standoff: 10 },
+      gridcolor: "rgba(255,255,255,0.08)",
+      automargin: true,
+      domain: [0, 0.86]
+    },
+    yaxis: {
+      title: { text: yTitle, standoff: 10 },
+      gridcolor: "rgba(255,255,255,0.08)",
+      automargin: true
+    },
+    annotations: [{
+      text: corrLabel,
+      xref: "paper",
+      yref: "paper",
+      x: 0.02,
+      y: 0.98,
+      xanchor: "left",
+      yanchor: "top",
+      showarrow: false,
+      font: { size: 14, color: "#ffb703" },
+      bgcolor: "rgba(0,0,0,0.5)",
+      borderpad: 6,
+      bordercolor: "rgba(255,183,3,0.4)",
+      borderwidth: 1
+    }],
+    margin: { l: 70, r: 130, t: 60, b: 70 },
+    showlegend: false,
+    height: 560
+  }, { responsive: true });
+}
+</script>
+
+
+<script>
+scatterWithTrend(
+  "graph_edu", eduData,
+  "% with Academic Degree", "General Disability Rate (%)",
+  "Education vs Disability",
+  "Spearman r = " + eduData.corr.toFixed(2)
+);
+
+scatterWithTrend(
+  "graph_salary", salData,
+  "Average Monthly Salary (NIS)", "General Disability Rate (%)",
+  "Salary vs Disability",
+  "Spearman r = " + salData.corr.toFixed(2)
+);
+
+scatterWithTrend(
+  "graph_arab", arabData,
+  "Arab Population %", "General Disability Rate (%)",
+  "Arab Population % vs Disability",
+  "Spearman r = " + arabData.corr.toFixed(2)
+);
+
+scatterWithTrend(
+  "graph_haredi", harediData,
+  "Haredi Population %", "General Disability Rate (%)",
+  "Haredi Population % vs Disability",
+  "Spearman r = " + harediData.corr.toFixed(2)
+);
+</script>
+
+
+<script>
+const heatmapAnnotations = [];
+for (let i = 0; i < heatmapData.y.length; i++) {
+  for (let j = 0; j < heatmapData.x.length; j++) {
+    const value = heatmapData.z[i][j];
+    if (value === null || Number.isNaN(value)) continue;
+    heatmapAnnotations.push({
+      x: heatmapData.x[j],
+      y: heatmapData.y[i],
+      text: value.toFixed(2),
+      showarrow: false,
+      font: {
+        size: 10,
+        color: Math.abs(value) > 0.5 ? "#fff" : "#ccc"
+      }
+    });
+  }
+}
+
+Plotly.newPlot("graph_heatmap", [
+  {
+    z: heatmapData.z,
+    x: heatmapData.x,
+    y: heatmapData.y,
+    type: "heatmap",
+    colorscale: [
+      [0.0, "#313695"],
+      [0.25, "#4575b4"],
+      [0.5, "#f7f7f7"],
+      [0.75, "#d73027"],
+      [1.0, "#a50026"]
+    ],
+    zmin: -1,
+    zmax: 1,
+    hoverongaps: false,
+    hovertemplate: "%{x}<br>%{y}<br>r = %{z:.2f}<extra></extra>",
+    colorbar: {
+      ...colorbarOutside,
+      title: { text: "Spearman r" }
+    }
+  }
+], {
+  ...layoutDefaults,
+  title: "Spearman Correlation Matrix",
+  xaxis: {
+    tickangle: -40,
+    automargin: true,
+    domain: [0, 0.86]
+  },
+  yaxis: {
+    automargin: true
+  },
+  annotations: heatmapAnnotations,
+  margin: { l: 160, r: 130, t: 60, b: 140 },
+  height: 620
+}, { responsive: true });
+</script>
+
+
+<script>
+const navLinks = Array.from(document.querySelectorAll(".nav a"));
+const navLookup = new Map(
+  navLinks.map(link => [link.getAttribute("href").slice(1), link])
+);
+
+function setActiveNav(id) {
+  navLinks.forEach(link => link.classList.remove("active"));
+  const target = navLookup.get(id);
+  if (target) target.classList.add("active");
+}
+
+const observer = new IntersectionObserver(
+  entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        setActiveNav(entry.target.id);
+      }
+    });
+  },
+  { root: null, rootMargin: "-35% 0px -55% 0px", threshold: 0 }
+);
+
+document.querySelectorAll(".slide").forEach(slide => observer.observe(slide));
+
+if (location.hash) {
+  setActiveNav(location.hash.slice(1));
+} else if (navLinks.length) {
+  navLinks[0].classList.add("active");
+}
+</script>
+
+</body>
+</html>

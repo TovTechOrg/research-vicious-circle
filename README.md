@@ -4,11 +4,14 @@
 
 This project explores correlations between poverty indicators and health/disability outcomes across **278 Israeli settlements**, using administrative data from the National Insurance Institute (Bituach Leumi) and official indices from the Central Bureau of Statistics (CBS).
 
-## Live Presentation
+## Live Presentations
 
-**[View interactive presentation](https://tovtechorg.github.io/research-vicious-circle/)**
+**[View on GitHub Pages](https://tovtechorg.github.io/research-vicious-circle/)** — landing page with both phases:
 
-> The website is served via GitHub Pages. `index.html` redirects to `presentation_main.html`.
+| Phase | Focus | Slides |
+|-------|-------|--------|
+| **[Phase 1](https://tovtechorg.github.io/research-vicious-circle/presentation_main.html)** | SE vulnerability ↔ disability correlation | 15 |
+| **[Phase 2](https://tovtechorg.github.io/research-vicious-circle/presentation_phase2.html)** | Education, salary & demographics | 6 |
 
 ## What We Found (Phase 1)
 
@@ -73,13 +76,21 @@ Both indices are normalized to **[-1, +1]** (Distress → Resilience).
 
 ## Repository Layout
 
-Tracked (in GitHub):
-- `presentation_main.html` — generated interactive presentation (served by Pages)
-- `index.html` — redirect entrypoint
-- `generate_presentation_insights.py` — generator script (builds `presentation_main.html`)
-- `research_vicious_circle.ipynb` — main analysis notebook
-- `build_master_dataset.py` — builds the master dataset table
-- `requirements.txt` — Python dependencies for scripts
+```
+bituah_da/
+├── build_master_dataset.py           ← ETL: raw files → master dataset
+├── generate_presentation_insights.py ← Phase 1 HTML generator
+├── generate_presentation_phase2.py   ← Phase 2 HTML generator
+├── research_vicious_circle.ipynb     ← main analysis notebook
+│
+├── index.html                        ← GitHub Pages landing page
+├── presentation_main.html            ← Phase 1 output (15 slides)
+├── presentation_phase2.html          ← Phase 2 output (6 slides)
+│
+├── requirements.txt
+├── README.md
+└── datas_for_research_vicious_circle_project/  ← raw data (not in git)
+```
 
 ## Google Colab (quick run)
 
