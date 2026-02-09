@@ -10,7 +10,7 @@ This project explores correlations between poverty indicators and health/disabil
 
 | Phase | Focus | Slides |
 |-------|-------|--------|
-| **[Phase 1](https://tovtechorg.github.io/research-vicious-circle/presentation_main.html)** | SE vulnerability ↔ disability correlation | 15 |
+| **[Phase 1](https://tovtechorg.github.io/research-vicious-circle/presentation_main.html)** | SE vulnerability ↔ disability correlation | 12 |
 | **[Phase 2](https://tovtechorg.github.io/research-vicious-circle/presentation_phase2.html)** | Education, salary & demographics | 6 |
 
 ## What We Found (Phase 1)
@@ -84,7 +84,7 @@ bituah_da/
 ├── research_vicious_circle.ipynb     ← main analysis notebook
 │
 ├── index.html                        ← GitHub Pages landing page
-├── presentation_main.html            ← Phase 1 output (15 slides)
+├── presentation_main.html            ← Phase 1 output (12 slides)
 ├── presentation_phase2.html          ← Phase 2 output (6 slides)
 │
 ├── requirements.txt
@@ -125,17 +125,9 @@ Tip: if you want an Excel file too (easy to view/download from Colab):
 data_master = build_master_dataset(data_dir=DATA_DIR, save=True, verbose=True, write_excel=True, write_pkl=False)
 ```
 
-## Phase 2: Additional Data Collection
-
-We are collecting additional data to deepen the analysis.
-
-**Data Sources:**
-- [Working Spreadsheet](https://docs.google.com/spreadsheets/d/19G-GOPbrKtfNGO_dl_m944ULK2tldN9S/edit?usp=sharing)
-- [Haredi Population Statistics (IDI Yearbook 2023)](https://www.idi.org.il/haredi/2023/?chapter=51973#excel) — demographics, fertility rates, geographic distribution
-
 ## Links
 
-- [Live Presentation](https://tovtechorg.github.io/research-vicious-circle/)
+- [Live Presentations](https://tovtechorg.github.io/research-vicious-circle/)
 - [Project Kanban Board](https://docs.google.com/spreadsheets/d/1v2XxbDu7Gwhqv4Y4Dbebmn-HpkJRhlU1/edit?usp=sharing)
 - [Phase 2 Working Spreadsheet](https://docs.google.com/spreadsheets/d/19G-GOPbrKtfNGO_dl_m944ULK2tldN9S/edit?usp=sharing)
 - [Haredi Population Statistics (IDI 2023)](https://www.idi.org.il/haredi/2023/?chapter=51973#excel)
