@@ -77,7 +77,6 @@ Both indices are normalized to **[-1, +1]** (Distress → Resilience).
 ## Repository Layout
 
 ```
-bituah_da/
 ├── build_master_dataset.py           ← ETL: raw files → master dataset
 ├── generate_presentation_insights.py ← Phase 1 HTML generator
 ├── generate_presentation_phase2.py   ← Phase 2 HTML generator
