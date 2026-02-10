@@ -93,35 +93,37 @@ Both indices are normalized to **[-1, +1]** (Distress → Resilience).
 
 ## Getting Started
 
-**1. Install dependencies:**
+### Option A: Local
+
 ```bash
 pip install -r requirements.txt
-```
-
-**2. Place raw data** in `datas_for_research_vicious_circle_project/` (shared locally by the team, not in git).
-
-**3. Build the master dataset:**
-```bash
 python build_master_dataset.py
 ```
 
-Output: `datas_for_research_vicious_circle_project/data/processed/benefits_final.csv` (278 rows, 35 columns)
+Data folder `datas_for_research_vicious_circle_project/` must be in the project root (shared by the team, not in git).
 
-**4. Regenerate presentations (optional):**
-```bash
-python generate_presentation_insights.py    # Phase 1
-python generate_presentation_phase2.py      # Phase 2
-```
-
-### Google Colab
-
-Upload `build_master_dataset.py` and the `datas_for_research_vicious_circle_project/` folder, then run:
+### Option B: Google Colab + Google Drive
 
 ```python
+# 1. Install
 !pip -q install pandas numpy openpyxl plotly
+
+# 2. Mount Google Drive
+from google.colab import drive
+drive.mount('/content/drive')
+
+# 3. Build dataset (adjust path to your Drive folder)
+import sys
+sys.path.insert(0, '/content/drive/MyDrive/datas_for_research_vicious_circle_project')
+
 from build_master_dataset import build_master_dataset
-data_master = build_master_dataset(data_dir="datas_for_research_vicious_circle_project", save=True, verbose=True)
+data_master = build_master_dataset(
+    data_dir="/content/drive/MyDrive/datas_for_research_vicious_circle_project",
+    save=True, verbose=True
+)
 ```
+
+Both options produce: `data/processed/benefits_final.csv` (278 rows, 35 columns)
 
 ## Links
 
