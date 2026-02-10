@@ -97,7 +97,15 @@ Both indices are normalized to **[-1, +1]** (Distress → Resilience).
 
 ```bash
 pip install -r requirements.txt
-python build_master_dataset.py
+```
+
+```python
+from build_master_dataset import build_master_dataset
+
+data_master = build_master_dataset(
+    data_dir="datas_for_research_vicious_circle_project",
+    save=True, verbose=True
+)
 ```
 
 Data folder `datas_for_research_vicious_circle_project/` must be in the project root (shared by the team, not in git).
