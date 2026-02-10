@@ -471,6 +471,94 @@ def clean_values(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _minmax_scale_0_1(series: pd.Series) -> pd.Series:
+    s = pd.to_numeric(series, errors="coerce")
+    s_min = s.min(skipna=True)
+    s_max = s.max(skipna=True)
+    if pd.isna(s_min) or pd.isna(s_max) or s_max == s_min:
+        return pd.Series(np.nan, index=s.index)
+    return (s - s_min) / (s_max - s_min)
+
+
+def _safe_rate_per_100(numerator: pd.Series, denominator: pd.Series) -> pd.Series:
+    num = pd.to_numeric(numerator, errors="coerce")
+    den = pd.to_numeric(denominator, errors="coerce")
+    with np.errstate(divide="ignore", invalid="ignore"):
+        rate = (num / den) * 100.0
+    rate = rate.where(den > 0)
+    return rate.round(2)
+
+
+def add_derived_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add derived, analysis-friendly columns (rates, indices, imputations).
+
+    Notes:
+    - Absolute counts are preserved; derived features are added as new columns.
+    - Logic is based on the exploratory additions in `test.ipynb`.
+    """
+
+    df = df.copy()
+
+    # --- Rates (per 100 residents in the relevant age group) ---
+    if "population_18_64" in df.columns:
+        if "general_disability_benefit" in df.columns:
+            df["general_disability_rate"] = _safe_rate_per_100(
+                df["general_disability_benefit"], df["population_18_64"]
+            )
+        if "special_services_for_persons_with_disabilities" in df.columns:
+            df["special_services_disability_rate"] = _safe_rate_per_100(
+                df["special_services_for_persons_with_disabilities"], df["population_18_64"]
+            )
+        if "mobility_benefit" in df.columns:
+            df["mobility_disability_rate"] = _safe_rate_per_100(df["mobility_benefit"], df["population_18_64"])
+        if "income_support_benefit" in df.columns:
+            df["income_support_rate"] = _safe_rate_per_100(df["income_support_benefit"], df["population_18_64"])
+        if "unemployment_benefit" in df.columns:
+            df["unemployment_rate"] = _safe_rate_per_100(df["unemployment_benefit"], df["population_18_64"])
+
+        # The benefits sheet uses a curly apostrophe in this column name.
+        work_injury_col = "work_injury_victims_receiving_disability_and_dependents’_benefits"
+        if work_injury_col in df.columns:
+            df["work_injury_victims_rate"] = _safe_rate_per_100(df[work_injury_col], df["population_18_64"])
+
+    if "population_65_plus" in df.columns and "long_term_care_benefit" in df.columns:
+        df["long_term_care_rate"] = _safe_rate_per_100(df["long_term_care_benefit"], df["population_65_plus"])
+
+    if "population_0_17" in df.columns and "disabled_child_benefit" in df.columns:
+        df["disabled_child_benefit_rate"] = _safe_rate_per_100(df["disabled_child_benefit"], df["population_0_17"])
+
+    # --- Salary imputation (cluster-median) ---
+    if "average_monthly_salary_2023" in df.columns and "socio_economic_index_cluster" in df.columns:
+        df["average_monthly_salary_2023_was_imputed"] = df["average_monthly_salary_2023"].isna()
+        cluster_median = df.groupby("socio_economic_index_cluster", observed=False)[
+            "average_monthly_salary_2023"
+        ].transform("median")
+        df["average_monthly_salary_2023_imputed"] = df["average_monthly_salary_2023"].fillna(cluster_median)
+
+    # --- Education index (0..100) ---
+    edu_cols = [
+        "edu_attain_pct_academic_degree",
+        "edu_attain_pct_postsecondary_nonacademic",
+        "edu_bagrut_uni_req_pct",
+        "edu_dropout_pct",
+    ]
+    if all(c in df.columns for c in edu_cols):
+        df["edu_no_dropout_pct"] = 100 - pd.to_numeric(df["edu_dropout_pct"], errors="coerce")
+        norm_academic = _minmax_scale_0_1(df["edu_attain_pct_academic_degree"])
+        norm_tech = _minmax_scale_0_1(df["edu_attain_pct_postsecondary_nonacademic"])
+        norm_bagrut = _minmax_scale_0_1(df["edu_bagrut_uni_req_pct"])
+        norm_no_dropout = _minmax_scale_0_1(df["edu_no_dropout_pct"])
+        df["education_index"] = (
+            norm_academic * 0.35
+            + norm_bagrut * 0.35
+            + norm_tech * 0.15
+            + norm_no_dropout * 0.15
+        ) * 100.0
+
+    return df
+
+
 def save_dataset(
     df: pd.DataFrame,
     name: str,
@@ -573,6 +661,7 @@ def build_master_dataset(
     data_master = merge_haredi_2020(data_master, df_haredi_2020)
     data_master = merge_average_salary(data_master, df_salary)
     data_master = clean_values(data_master)
+    data_master = add_derived_features(data_master)
 
     if verbose:
         print(f"✅ Built master dataset: {len(data_master)} rows × {data_master.shape[1]} cols")

@@ -91,37 +91,36 @@ Both indices are normalized to **[-1, +1]** (Distress → Resilience).
 └── datas_for_research_vicious_circle_project/  ← raw data (not in git)
 ```
 
-## Google Colab (quick run)
+## Getting Started
 
-Upload into the Colab workspace (`/content`):
-- `build_master_dataset.py`
-- `datas_for_research_vicious_circle_project/` (the raw data folder with the `.xlsx/.csv` inputs inside)
+**1. Install dependencies:**
+```bash
+pip install -r requirements.txt
+```
 
-Then paste into **one cell** and run:
+**2. Place raw data** in `datas_for_research_vicious_circle_project/` (shared locally by the team, not in git).
+
+**3. Build the master dataset:**
+```bash
+python build_master_dataset.py
+```
+
+Output: `datas_for_research_vicious_circle_project/data/processed/benefits_final.csv` (278 rows, 35 columns)
+
+**4. Regenerate presentations (optional):**
+```bash
+python generate_presentation_insights.py    # Phase 1
+python generate_presentation_phase2.py      # Phase 2
+```
+
+### Google Colab
+
+Upload `build_master_dataset.py` and the `datas_for_research_vicious_circle_project/` folder, then run:
 
 ```python
 !pip -q install pandas numpy openpyxl plotly
-
-from pathlib import Path
 from build_master_dataset import build_master_dataset
-
-# Path to the folder that contains the raw files (xlsx/csv)
-DATA_DIR = Path("datas_for_research_vicious_circle_project").resolve()
-print("DATA_DIR =", DATA_DIR)
-
-# Build (and save outputs into DATA_DIR / data / processed)
-data_master = build_master_dataset(data_dir=DATA_DIR, save=True, verbose=True)
-data_master.head()
-```
-
-Outputs will be created here:
-- `datas_for_research_vicious_circle_project/data/processed/benefits_final.csv`
-- `datas_for_research_vicious_circle_project/data/processed/benefits_final.xlsx` (only if you run with `--excel`)
-
-Tip: if you want an Excel file too (easy to view/download from Colab):
-
-```python
-data_master = build_master_dataset(data_dir=DATA_DIR, save=True, verbose=True, write_excel=True, write_pkl=False)
+data_master = build_master_dataset(data_dir="datas_for_research_vicious_circle_project", save=True, verbose=True)
 ```
 
 ## Links

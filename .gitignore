@@ -16,7 +16,8 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Temp files
+# Temp / scratch notebooks
+test.ipynb
 tmpclaude-*
 *.tmp
 ~$*.xlsx
