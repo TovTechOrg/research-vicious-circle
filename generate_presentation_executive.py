@@ -362,11 +362,11 @@ print("Loading distance data ...")
 DIST_CSV = DATA_DIR / "data" / "processed" / "my_dataset_with_distances.csv"
 df_dist = pd.read_csv(DIST_CSV)
 df_dist["settlement_code"] = pd.to_numeric(df_dist["settlement_code"], errors="coerce")
-for dc in ["dist_any_branch_km", "dist_central_branch_km", "dist_central_medical_branch_km"]:
+for dc in ["dist_any_branch_km", "dist_central_branch_km"]:
     df_dist[dc] = pd.to_numeric(df_dist[dc], errors="coerce")
 
 # Merge distances into main df via settlement_symbol ↔ settlement_code
-dist_map = df_dist.set_index("settlement_code")[["dist_any_branch_km", "dist_central_branch_km", "dist_central_medical_branch_km"]]
+dist_map = df_dist.set_index("settlement_code")[["dist_any_branch_km", "dist_central_branch_km"]]
 df["settlement_symbol_num"] = pd.to_numeric(df.get("settlement_symbol", pd.Series(dtype=float)), errors="coerce")
 df = df.merge(dist_map, left_on="settlement_symbol_num", right_index=True, how="left")
 
@@ -377,7 +377,6 @@ dist_scatter_data = {
     "disability_rate": df_dist_plot["general_disability_rate"].round(2).tolist(),
     "dist_any": df_dist_plot["dist_any_branch_km"].round(2).tolist(),
     "dist_central": df_dist_plot["dist_central_branch_km"].round(2).tolist(),
-    "dist_central_medical": df_dist_plot["dist_central_medical_branch_km"].round(2).tolist(),
 }
 
 # Trend line data (SES vs distance, z-scored)
@@ -1964,9 +1963,8 @@ js_blocks.append("""
 <script>
 (function() {
   const specs = [
-    { key: "dist_any",             label: "Any BTL branch",              color: "#38BDF8" },
-    { key: "dist_central",         label: "Central branch",              color: "#F43F5E" },
-    { key: "dist_central_medical", label: "Central + Medical committee", color: "#22C55E" }
+    { key: "dist_any",     label: "Any BTL branch", color: "#38BDF8" },
+    { key: "dist_central", label: "Central branch",  color: "#F43F5E" }
   ];
 
   const initSpec = specs[0];
