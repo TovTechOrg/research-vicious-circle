@@ -11,7 +11,7 @@ This project explores correlations between poverty indicators and health/disabil
 | Phase | Focus | Slides |
 |-------|-------|--------|
 | **[Phase 1](https://tovtechorg.github.io/research-vicious-circle/presentation_main.html)** | SE vulnerability ↔ disability correlation | 12 |
-| **[Phase 2](https://tovtechorg.github.io/research-vicious-circle/presentation_phase2.html)** | Education, salary & demographics | 6 |
+| **[Phase 2](https://tovtechorg.github.io/research-vicious-circle/presentation_executive.html)** | 4 research questions, ML models, 7 interactive charts | 9 |
 
 ## What We Found (Phase 1)
 
