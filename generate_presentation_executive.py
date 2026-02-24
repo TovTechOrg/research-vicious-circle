@@ -359,7 +359,7 @@ print(f"  Non-frontline: {n_nonfrontline_panel} settlements, rate {nf_rate_2023}
 # ── Distance data (Q4) ───────────────────────────────────────────────────────
 
 print("Loading distance data ...")
-DIST_CSV = PROJECT_ROOT / "my_dataset_with_distances.csv"
+DIST_CSV = DATA_DIR / "data" / "processed" / "my_dataset_with_distances.csv"
 df_dist = pd.read_csv(DIST_CSV)
 df_dist["settlement_code"] = pd.to_numeric(df_dist["settlement_code"], errors="coerce")
 for dc in ["dist_any_branch_km", "dist_central_branch_km", "dist_central_medical_branch_km"]:
