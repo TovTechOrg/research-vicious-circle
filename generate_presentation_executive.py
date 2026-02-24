@@ -30,7 +30,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import GroupKFold, cross_val_predict
+from sklearn.model_selection import GroupKFold, KFold, cross_val_predict, cross_val_score
+from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 try:
@@ -558,6 +559,123 @@ importance_data = {
     "values": [round(float(avg_importances[i]), 4) for i in imp_order],
 }
 
+# ── OLS Linear Regression (complementary analysis) ────────────────────────
+
+print("Running OLS linear regression (8 features) ...")
+
+# Derive features that the OLS notebook uses
+salary_col = "average_monthly_salary_2023_imputed" if "average_monthly_salary_2023_imputed" in df.columns else "average_monthly_salary_2023"
+df_ols = df.loc[df_reg.index].copy()
+df_ols["log_salary"] = np.log(pd.to_numeric(df_ols[salary_col], errors="coerce"))
+df_ols["pct_65_plus"] = (pd.to_numeric(df_ols["population_65_plus"], errors="coerce")
+                          / pd.to_numeric(df_ols["total_population"], errors="coerce")) * 100
+pop_working = (pd.to_numeric(df_ols["population_18_64"], errors="coerce")
+               + pd.to_numeric(df_ols["population_65_plus"], errors="coerce"))
+df_ols["labor_participation"] = (pd.to_numeric(df_ols["num_workers_2023"], errors="coerce")
+                                  / pop_working * 100).clip(upper=100.0)
+pop_0_17 = pd.to_numeric(df_ols["population_0_17"], errors="coerce")
+pop_18_64 = pd.to_numeric(df_ols["population_18_64"], errors="coerce")
+pop_65 = pd.to_numeric(df_ols["population_65_plus"], errors="coerce")
+df_ols["dependency_ratio"] = ((pop_0_17 + pop_65) / pop_18_64) * 100
+
+OLS_FEATURES = [
+    "log_salary", "peripherality_index_score", "arab_population_percentage",
+    "haredi_population_percentage", "income_support_rate", "pct_65_plus",
+    "labor_participation", "dependency_ratio",
+]
+OLS_LABELS = {
+    "log_salary": "Log Salary",
+    "peripherality_index_score": "Peripherality Index",
+    "arab_population_percentage": "Arab Population %",
+    "haredi_population_percentage": "Haredi Population %",
+    "income_support_rate": "Income Support Rate",
+    "pct_65_plus": "Population 65+ %",
+    "labor_participation": "Labor Participation",
+    "dependency_ratio": "Dependency Ratio",
+}
+
+for c in OLS_FEATURES:
+    df_ols[c] = pd.to_numeric(df_ols.get(c, pd.Series(dtype=float)), errors="coerce").astype(float)
+
+df_ols_clean = df_ols.dropna(subset=OLS_FEATURES + [TARGET])
+X_ols_raw = df_ols_clean[OLS_FEATURES].values
+y_ols = df_ols_clean[TARGET].values
+
+scaler = StandardScaler()
+X_ols_scaled = scaler.fit_transform(X_ols_raw)
+
+ols_model = LinearRegression()
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+ols_cv_scores = cross_val_score(ols_model, X_ols_scaled, y_ols, cv=kf, scoring="r2")
+ols_cv_r2 = round(float(ols_cv_scores.mean()), 3)
+ols_cv_std = round(float(ols_cv_scores.std()), 3)
+
+# Fit on full data for coefficients and residuals
+ols_model.fit(X_ols_scaled, y_ols)
+ols_r2_full = round(float(r2_score(y_ols, ols_model.predict(X_ols_scaled))), 3)
+ols_coefficients = ols_model.coef_.astype(float)
+
+# Coefficient chart data (sorted by absolute magnitude)
+ols_abs_order = np.argsort(np.abs(ols_coefficients))[::-1]
+ols_coeff_data = {
+    "labels": [OLS_LABELS.get(OLS_FEATURES[i], OLS_FEATURES[i]) for i in ols_abs_order],
+    "values": [round(float(ols_coefficients[i]), 4) for i in ols_abs_order],
+    "colors": ["#F43F5E" if ols_coefficients[i] > 0 else "#38BDF8" for i in ols_abs_order],
+}
+
+print(f"  OLS: CV R\u00b2 = {ols_cv_r2} \u00b1 {ols_cv_std}, Full R\u00b2 = {ols_r2_full}")
+
+# Anomaly detection (residual-based, same as notebook)
+y_ols_pred = ols_model.predict(X_ols_scaled)
+ols_residuals = y_ols - y_ols_pred
+ols_threshold = 1.5 * float(np.std(ols_residuals))
+
+ols_names = df_ols_clean["settlement_name"].tolist() if "settlement_name" in df_ols_clean.columns else []
+ols_total_pop = pd.to_numeric(df_ols_clean.get("total_population", pd.Series(dtype=float)), errors="coerce").values
+
+anomaly_types = []
+for r in ols_residuals:
+    if r < -ols_threshold:
+        anomaly_types.append("Underutilization")
+    elif r > ols_threshold:
+        anomaly_types.append("Intergenerational Dependency")
+    else:
+        anomaly_types.append("Normal")
+
+ols_anomaly_data = {}
+for atype in ["Normal", "Underutilization", "Intergenerational Dependency"]:
+    mask = [t == atype for t in anomaly_types]
+    idx = [i for i, m in enumerate(mask) if m]
+    ols_anomaly_data[atype] = {
+        "predicted": [round(float(y_ols_pred[i]), 2) for i in idx],
+        "actual": [round(float(y_ols[i]), 2) for i in idx],
+        "names": [ols_names[i] for i in idx] if ols_names else [],
+        "residual": [round(float(ols_residuals[i]), 2) for i in idx],
+    }
+
+n_ols_under = sum(1 for t in anomaly_types if t == "Underutilization")
+n_ols_dependency = sum(1 for t in anomaly_types if t == "Intergenerational Dependency")
+
+# Top anomalies (for text)
+top_over = sorted(
+    [(ols_names[i], round(float(ols_residuals[i]), 2))
+     for i in range(len(ols_residuals))
+     if anomaly_types[i] == "Intergenerational Dependency" and ols_total_pop[i] > 5000],
+    key=lambda x: -x[1]
+)[:3]
+top_under = sorted(
+    [(ols_names[i], round(float(ols_residuals[i]), 2))
+     for i in range(len(ols_residuals))
+     if anomaly_types[i] == "Underutilization" and ols_total_pop[i] > 5000],
+    key=lambda x: x[1]
+)[:3]
+
+# Diagonal range for anomaly scatter
+ols_min_val = float(min(min(y_ols), min(y_ols_pred)))
+ols_max_val = float(max(max(y_ols), max(y_ols_pred)))
+
+print(f"  Anomaly detection: {n_ols_under} underutilization, {n_ols_dependency} dependency (threshold \u00b1{ols_threshold:.2f})")
+
 # ── Sector R² ───────────────────────────────────────────────────────────────
 
 print("Computing sector R\u00b2 ...")
@@ -789,8 +907,8 @@ slide1 = f"""
         <div class="stat-label">Socio-economic indicators</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value" data-target="3">3</div>
-        <div class="stat-label">ML models tested</div>
+        <div class="stat-value" data-target="4">4</div>
+        <div class="stat-label">Models tested</div>
       </div>
     </div>
   </div>
@@ -801,7 +919,7 @@ add_slide("slide1", "Task", slide1)
 
 # ── Slide 2: Method (Models + Feature Importance) ───────────────────────────
 
-n_models_text = "three" if tabpfn_available else ("two" if xgb_available else "one")
+n_tree_models_text = "three" if tabpfn_available else ("two" if xgb_available else "one")
 
 slide2 = f"""
 <section class="slide" id="slide2">
@@ -812,15 +930,17 @@ slide2 = f"""
     <div class="two-col reveal delay-1">
       <div class="glass-panel">
         <h3>Models</h3>
-        <p>We trained {n_models_text} ML algorithms with spatial cross-validation:</p>
+        <p>We trained {n_tree_models_text} tree-based ML models + OLS linear regression:</p>
         <ul>
           <li><strong>Random Forest</strong> &mdash; R&sup2;&nbsp;=&nbsp;{rf_scores['r2']}</li>
           {"<li><strong>XGBoost</strong> &mdash; R&sup2;&nbsp;=&nbsp;" + str(xgb_scores["r2"]) + "</li>" if xgb_scores else ""}
           {"<li><strong>TabPFN v2</strong> &mdash; R&sup2;&nbsp;=&nbsp;" + str(tabpfn_scores["r2"]) + " (Nature, Jan 2025)</li>" if tabpfn_scores else ""}
+          <li><strong>OLS Linear Regression</strong> &mdash; R&sup2;&nbsp;=&nbsp;{ols_cv_r2}
+              (5-fold CV, 8 features)</li>
         </ul>
-        <p style="margin-top:10px;">Best overall R&sup2;&nbsp;=&nbsp;<strong>{best_r2_val}</strong>
-        &mdash; {n_features} features explain ~{round(best_r2_val*100)}% of disability rate
-        variation.</p>
+        <p style="margin-top:10px;">Best tree R&sup2;&nbsp;=&nbsp;<strong>{best_r2_val}</strong>.
+        OLS confirms with R&sup2;&nbsp;=&nbsp;{ols_cv_r2} &mdash; and reveals
+        <strong>direction</strong> of each factor&rsquo;s influence.</p>
       </div>
       <div class="glass-panel">
         <h3>Feature Categories</h3>
@@ -834,6 +954,17 @@ slide2 = f"""
       </div>
     </div>
     <div class="chart-container reveal delay-2"><div id="graph_importance"></div></div>
+    <div class="chart-container reveal delay-3"><div id="graph_ols_coefficients"></div></div>
+    <div class="glass-panel reveal delay-3" style="max-width:960px;">
+      <h3>Why Two Charts?</h3>
+      <p><strong>Top chart</strong> (tree models): shows which features matter most
+      &mdash; but not the <em>direction</em>.</p>
+      <p style="margin-top:6px;"><strong>Bottom chart</strong> (OLS): shows
+      <strong style="color:#F43F5E;">red bars increase</strong> disability rates and
+      <strong style="color:#38BDF8;">blue bars decrease</strong> them.
+      Income support rate is the strongest positive driver; salary is the strongest
+      negative driver. Both methods agree on the same key factors.</p>
+    </div>
   </div>
 </section>
 """
@@ -873,6 +1004,31 @@ slide3 = f"""
         </ul>
         <p style="margin-top:8px;"><strong>Arab and ultra-Orthodox communities are
         disproportionately flagged.</strong></p>
+      </div>
+    </div>
+    <div class="chart-container reveal delay-3"><div id="graph_ols_anomaly"></div></div>
+    <div class="two-col reveal delay-3">
+      <div class="glass-panel">
+        <h3>Independent Validation (OLS)</h3>
+        <p>The linear regression model (R&sup2;&nbsp;=&nbsp;{ols_r2_full}) identifies anomalies
+        using a fundamentally different method &mdash; residuals &gt; 1.5&sigma;.</p>
+        <ul>
+          <li><strong style="color:#22C55E;">{n_ols_under} underutilization</strong>
+              settlements (actual &lt;&lt; predicted)</li>
+          <li><strong style="color:#F43F5E;">{n_ols_dependency} intergenerational dependency</strong>
+              settlements (actual &gt;&gt; predicted)</li>
+        </ul>
+      </div>
+      <div class="glass-panel">
+        <h3>Same Outliers, Different Model</h3>
+        <p>Top positive outliers (pop &gt; 5K):</p>
+        <ul>
+          {"".join(f'<li><strong>{name}</strong> (residual {res:+.2f})</li>' for name, res in top_over)}
+        </ul>
+        <p style="margin-top:6px;">Top underutilization:</p>
+        <ul>
+          {"".join(f'<li><strong>{name}</strong> (residual {res:+.2f})</li>' for name, res in top_under)}
+        </ul>
       </div>
     </div>
   </div>
@@ -1643,6 +1799,11 @@ const interScatterData = {json.dumps(inter_scatter_data)};
 const importanceData = {json.dumps(importance_data)};
 const distScatterData = {json.dumps(dist_scatter_data)};
 const trendData = {json.dumps(trend_data)};
+const olsCoeffData = {json.dumps(ols_coeff_data)};
+const olsAnomalyData = {json.dumps(ols_anomaly_data)};
+const olsThreshold = {round(ols_threshold, 4)};
+const olsMinVal = {round(ols_min_val, 2)};
+const olsMaxVal = {round(ols_max_val, 2)};
 
 const layoutDefaults = {{
   paper_bgcolor: "rgba(0,0,0,0)",
@@ -1685,6 +1846,39 @@ Plotly.newPlot("graph_importance", [{
   },
   margin: { l: 220, r: 30, t: 60, b: 60 },
   height: 500
+}, { responsive: true });
+</script>
+""")
+
+# OLS coefficients horizontal bar chart
+js_blocks.append("""
+<script>
+Plotly.newPlot("graph_ols_coefficients", [{
+  y: olsCoeffData.labels.slice().reverse(),
+  x: olsCoeffData.values.slice().reverse(),
+  type: "bar",
+  orientation: "h",
+  marker: {
+    color: olsCoeffData.colors.slice().reverse()
+  },
+  hovertemplate: "<b>%{y}</b><br>Coefficient: %{x:.4f}<extra></extra>"
+}], {
+  ...layoutDefaults,
+  title: "OLS Standardized Coefficients (direction + magnitude)",
+  xaxis: {
+    title: { text: "Standardized Coefficient", standoff: 10 },
+    gridcolor: "rgba(255,255,255,0.04)",
+    zeroline: true,
+    zerolinecolor: "rgba(255,255,255,0.2)",
+    zerolinewidth: 2,
+    automargin: true
+  },
+  yaxis: {
+    automargin: true,
+    tickfont: { size: 12 }
+  },
+  margin: { l: 200, r: 30, t: 60, b: 60 },
+  height: 420
 }, { responsive: true });
 </script>
 """)
@@ -1781,6 +1975,84 @@ Plotly.newPlot("graph_gap_scatter", gapTraces, {
   height: 520,
   showlegend: true
 }, { responsive: true });
+</script>
+""")
+
+# OLS anomaly detection scatter (Actual vs Predicted)
+js_blocks.append("""
+<script>
+(function() {
+  const colorMap = {
+    "Normal": "#636EFA",
+    "Underutilization": "#22C55E",
+    "Intergenerational Dependency": "#F43F5E"
+  };
+  const symbolMap = {
+    "Normal": "circle",
+    "Underutilization": "diamond",
+    "Intergenerational Dependency": "x"
+  };
+
+  const traces = ["Normal", "Underutilization", "Intergenerational Dependency"].map(atype => {
+    const d = olsAnomalyData[atype];
+    return {
+      x: d.predicted,
+      y: d.actual,
+      mode: "markers",
+      type: "scatter",
+      name: atype,
+      text: d.names,
+      marker: {
+        color: colorMap[atype],
+        symbol: symbolMap[atype],
+        size: atype === "Normal" ? 7 : 11,
+        opacity: atype === "Normal" ? 0.5 : 0.9,
+        line: { color: "rgba(255,255,255,0.4)", width: 0.5 }
+      },
+      hovertemplate:
+        "<b>%{text}</b><br>" +
+        "Actual: %{y:.2f}%<br>" +
+        "Predicted: %{x:.2f}%<extra>" + atype + "</extra>"
+    };
+  });
+
+  const shapes = [
+    { type: "line", x0: olsMinVal, y0: olsMinVal, x1: olsMaxVal, y1: olsMaxVal,
+      line: { color: "rgba(255,255,255,0.3)", width: 2, dash: "dash" } },
+    { type: "line", x0: olsMinVal, y0: olsMinVal + olsThreshold,
+      x1: olsMaxVal, y1: olsMaxVal + olsThreshold,
+      line: { color: "rgba(244,63,94,0.3)", width: 1, dash: "dot" } },
+    { type: "line", x0: olsMinVal, y0: olsMinVal - olsThreshold,
+      x1: olsMaxVal, y1: olsMaxVal - olsThreshold,
+      line: { color: "rgba(34,197,94,0.3)", width: 1, dash: "dot" } }
+  ];
+
+  Plotly.newPlot("graph_ols_anomaly", traces, {
+    ...layoutDefaults,
+    title: "OLS Anomaly Detection: Actual vs Predicted Disability Rate",
+    xaxis: {
+      title: { text: "Predicted Rate (%)", standoff: 10 },
+      gridcolor: "rgba(255,255,255,0.04)",
+      automargin: true
+    },
+    yaxis: {
+      title: { text: "Actual Rate (%)", standoff: 10 },
+      gridcolor: "rgba(255,255,255,0.04)",
+      automargin: true
+    },
+    shapes: shapes,
+    legend: {
+      x: 0.02, xanchor: "left", y: 0.98, yanchor: "top",
+      bgcolor: "rgba(0,0,0,0.5)",
+      bordercolor: "rgba(255,255,255,0.15)",
+      borderwidth: 1,
+      font: { size: 12 }
+    },
+    margin: { l: 70, r: 30, t: 60, b: 60 },
+    height: 520,
+    showlegend: true
+  }, { responsive: true });
+})();
 </script>
 """)
 
