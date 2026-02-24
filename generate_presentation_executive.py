@@ -1990,7 +1990,7 @@ js_blocks.append("""
     method: "update",
     args: [
       { x: [distScatterData[s.key]], "marker.color": s.color },
-      { "xaxis.title.text": "Distance to nearest " + s.label + " (km)" }
+      { "xaxis.title.text": "Distance to nearest " + s.label + " (km)", "xaxis.autorange": true }
     ]
   }));
 
@@ -1999,9 +1999,9 @@ js_blocks.append("""
     title: "Disability Rate vs Distance to Nearest NII Branch",
     xaxis: {
       title: { text: "Distance to nearest " + initSpec.label + " (km)", standoff: 10 },
-      range: [0, 120],
       gridcolor: "rgba(255,255,255,0.04)",
-      automargin: true
+      automargin: true,
+      rangemode: "tozero"
     },
     yaxis: {
       title: { text: "Disability Rate (%)", standoff: 10 },
