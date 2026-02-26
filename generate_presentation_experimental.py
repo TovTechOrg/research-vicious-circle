@@ -4,15 +4,14 @@ Light-themed, Chart.js-based alternative to the dark Plotly executive presentati
 Reads benefits_final.csv, trains the same models, loads temporal + distance data,
 produces presentation_experimental.html.
 
-Sections:
-  1. Header + KPI Cards
-  2. What Drives Disability Rates? (OLS coefficients + RF/XGB importance)
-  3. Under-Utilization Pockets (Q1)
-  4. Intergenerational Trap (Q2)
-  5. The Arab Sector Wall
-  6. Swords of Iron (Q3)
-  7. Distance Experiment (Q4)
-  8. Recommendations
+Sections (7 narrative-driven):
+  1. The Problem — human-first overview with TL;DR
+  2. Missing Claimants — Q1 ensemble gap scatter
+  3. Childhood Cycle — Q2 intergenerational
+  4. The Wall — climax, Arab sector R2 + integrated evidence
+  5. Ruled Out — Q3 + Q4 combined (conflict + distance)
+  6. Methodology — OLS + RF/XGB for technical readers
+  7. Action Plan — 5 recommendations tied to findings
 """
 
 from __future__ import annotations
@@ -26,7 +25,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
+from scipy.stats import spearmanr, pearsonr, norm as sp_norm
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
@@ -574,6 +573,7 @@ for c in OLS_FEATURES:
     df_ols[c] = pd.to_numeric(df_ols.get(c, pd.Series(dtype=float)), errors="coerce").astype(float)
 
 df_ols_clean = df_ols.dropna(subset=OLS_FEATURES + [TARGET])
+ols_valid_idx = df_ols_clean.index  # save for sector R2 later
 X_ols_raw = df_ols_clean[OLS_FEATURES].values
 y_ols = df_ols_clean[TARGET].values
 
@@ -646,6 +646,24 @@ ols_max_val = float(max(max(y_ols), max(y_ols_pred)))
 
 print(f"  Anomaly detection: {n_ols_under} underutilization, {n_ols_dependency} dependency (threshold +/-{ols_threshold:.2f})")
 
+# OLS group breakdown (Arab / Haredi / Other)
+ols_arab_pct_vals = pd.to_numeric(
+    df_ols_clean.get("arab_population_percentage", pd.Series(dtype=float)), errors="coerce"
+).fillna(0).values
+ols_haredi_pct_vals = pd.to_numeric(
+    df_ols_clean.get("haredi_population_percentage", pd.Series(dtype=float)), errors="coerce"
+).fillna(0).values
+ols_under_idx = [i for i, t in enumerate(anomaly_types) if t == "Underutilization"]
+n_ols_arab_under = sum(1 for i in ols_under_idx if ols_arab_pct_vals[i] > 50)
+n_ols_haredi_under = sum(1 for i in ols_under_idx if ols_haredi_pct_vals[i] > 50)
+n_ols_other_under = n_ols_under - n_ols_arab_under - n_ols_haredi_under
+ols_under_arab_pct = round(n_ols_arab_under / n_ols_under * 100) if n_ols_under > 0 else 0
+ols_under_haredi_pct = round(n_ols_haredi_under / n_ols_under * 100) if n_ols_under > 0 else 0
+ols_under_other_pct = round(n_ols_other_under / n_ols_under * 100) if n_ols_under > 0 else 0
+
+# OLS status lookup: index → anomaly type (for explorer table)
+ols_status_map = dict(zip(df_ols_clean.index, anomaly_types))
+
 # ── Sector R2 ───────────────────────────────────────────────────────────────
 
 print("Computing sector R2 ...")
@@ -653,12 +671,17 @@ print("Computing sector R2 ...")
 arab_pct = df_reg["arab_population_percentage"].values
 haredi_pct = df_reg["haredi_population_percentage"].values
 arab_mask = arab_pct > 50
-haredi_mask = haredi_pct > 20
+haredi_mask = haredi_pct > 50
 secular_mask = (~arab_mask) & (~haredi_mask)
 
 sector_rows = []
+# OLS full-fit predictions mapped to df_reg index
+ols_full_pred_arr = np.full(len(y), np.nan)
+ols_valid_positions = np.array([list(df_reg.index).index(idx) for idx in ols_valid_idx])
+ols_full_pred_arr[ols_valid_positions] = ols_model.predict(scaler.transform(X_ols_raw))
+
 for sname, smask in [
-    ("Arab >50%", arab_mask), ("Haredi >20%", haredi_mask),
+    ("Arab >50%", arab_mask), ("Haredi >50%", haredi_mask),
     ("Secular", secular_mask), ("All 278", np.ones(len(y), dtype=bool)),
 ]:
     n = int(smask.sum())
@@ -666,10 +689,14 @@ for sname, smask in [
     row["rf_r2"] = round(r2_score(y[smask], rf_pred_oof[smask]), 3) if n >= 5 else None
     row["xgb_r2"] = round(r2_score(y[smask], xgb_pred_oof[smask]), 3) if xgb_available and n >= 5 else None
     row["tabpfn_r2"] = round(r2_score(y[smask], tabpfn_pred_oof[smask]), 3) if tabpfn_available and n >= 5 else None
+    # OLS sector R2 (only where OLS has predictions)
+    ols_sector_mask = smask & ~np.isnan(ols_full_pred_arr)
+    n_ols_sector = int(ols_sector_mask.sum())
+    row["ols_r2"] = round(r2_score(y[ols_sector_mask], ols_full_pred_arr[ols_sector_mask]), 3) if n_ols_sector >= 5 else None
     sector_rows.append(row)
 
 arab_r2_vals = [v for row in sector_rows if row["sector"] == "Arab >50%"
-                for k, v in row.items() if k.endswith("_r2") and v is not None]
+                for k, v in row.items() if k.endswith("_r2") and k != "ols_r2" and v is not None]
 arab_best_r2 = max(arab_r2_vals) if arab_r2_vals else 0.0
 arab_unexplained_pct = round((1 - arab_best_r2) * 100)
 
@@ -702,8 +729,100 @@ if tabpfn_available:
     arab_chart_data["overall_r2"].append(all_row["tabpfn_r2"])
     arab_chart_data["secular_r2"].append(secular_row["tabpfn_r2"])
 
+# Add Linear Regression to sector comparison
+if arab_row.get("ols_r2") is not None:
+    arab_chart_data["models"].append("Linear Regression")
+    arab_chart_data["arab_r2"].append(arab_row["ols_r2"])
+    arab_chart_data["overall_r2"].append(all_row.get("ols_r2"))
+    arab_chart_data["secular_r2"].append(secular_row.get("ols_r2"))
+
 best_model = "TabPFN v2" if tabpfn_available else ("XGBoost" if xgb_available else "RandomForest")
 best_r2_val = (tabpfn_scores or xgb_scores or rf_scores)["r2"]
+
+# ── Counterfactual analysis: train on non-Arab, predict Arab ─────────────────
+
+print("Computing counterfactual analysis ...")
+
+cf_arab_mask = arab_mask  # already defined: arab_pct > 50
+cf_non_arab_mask = ~cf_arab_mask
+
+X_non_arab = X[cf_non_arab_mask]
+y_non_arab = y[cf_non_arab_mask]
+X_arab_cf = X[cf_arab_mask]
+y_arab_cf = y[cf_arab_mask]
+
+# Train ensemble on non-Arab only
+cf_rf = Pipeline([
+    ("imputer", SimpleImputer(strategy="median")),
+    ("rf", RandomForestRegressor(n_estimators=600, min_samples_leaf=2, random_state=42, n_jobs=1)),
+])
+cf_rf.fit(X_non_arab, y_non_arab)
+cf_pred = cf_rf.predict(X_arab_cf)
+
+if xgb_available:
+    cf_xgb = Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("xgb", XGBRegressor(n_estimators=450, max_depth=4, learning_rate=0.05,
+                             subsample=0.9, colsample_bytree=0.9,
+                             objective="reg:squarederror", random_state=42, n_jobs=1)),
+    ])
+    cf_xgb.fit(X_non_arab, y_non_arab)
+    cf_pred = (cf_pred + cf_xgb.predict(X_arab_cf)) / 2.0
+
+if tabpfn_available:
+    cf_tabpfn = Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("tabpfn", TabPFNRegressor.create_default_for_version("v2")),
+    ])
+    try:
+        cf_tabpfn.fit(X_non_arab, y_non_arab)
+        n_cf_models = 2 if not xgb_available else 3
+        cf_pred = (cf_pred * (n_cf_models - 1) + cf_tabpfn.predict(X_arab_cf)) / n_cf_models
+    except Exception:
+        pass
+
+cf_gap = cf_pred - y_arab_cf  # positive = under-utilization
+cf_names = df_reg.loc[df_reg.index[cf_arab_mask], "settlement_name"].tolist()
+cf_pop_18_64 = pd.to_numeric(
+    df.loc[df_reg.index[cf_arab_mask], "population_18_64"], errors="coerce"
+).values
+
+# Threshold: top quartile of gap (biggest under-utilization)
+cf_gap_threshold = float(np.percentile(cf_gap[cf_gap > 0], 75)) if (cf_gap > 0).sum() > 4 else 2.0
+
+cf_flagged_mask = cf_gap >= cf_gap_threshold
+n_cf_flagged = int(cf_flagged_mask.sum())
+n_cf_under = int((cf_gap > 0).sum())
+cf_mean_gap = round(float(np.mean(cf_gap)), 2)
+cf_median_gap = round(float(np.median(cf_gap)), 2)
+
+# Estimate missing beneficiaries
+cf_missing_people = int(np.sum(
+    np.where(cf_gap > 0, (cf_gap / 100) * cf_pop_18_64, 0)
+))
+
+# Build scatter data for chart (all Arab settlements: actual vs counterfactual)
+cf_scatter = {
+    "flagged": {
+        "x": [round(float(cf_pred[i]), 2) for i in range(len(cf_gap)) if cf_flagged_mask[i]],
+        "y": [round(float(y_arab_cf[i]), 2) for i in range(len(cf_gap)) if cf_flagged_mask[i]],
+        "names": [cf_names[i] for i in range(len(cf_gap)) if cf_flagged_mask[i]],
+        "gap": [round(float(cf_gap[i]), 2) for i in range(len(cf_gap)) if cf_flagged_mask[i]],
+    },
+    "normal": {
+        "x": [round(float(cf_pred[i]), 2) for i in range(len(cf_gap)) if not cf_flagged_mask[i]],
+        "y": [round(float(y_arab_cf[i]), 2) for i in range(len(cf_gap)) if not cf_flagged_mask[i]],
+        "names": [cf_names[i] for i in range(len(cf_gap)) if not cf_flagged_mask[i]],
+        "gap": [round(float(cf_gap[i]), 2) for i in range(len(cf_gap)) if not cf_flagged_mask[i]],
+    },
+}
+cf_min_val = round(float(min(min(cf_pred), min(y_arab_cf))) - 0.5, 1)
+cf_max_val = round(float(max(max(cf_pred), max(y_arab_cf))) + 0.5, 1)
+
+print(f"  {n_cf_under} of {len(cf_gap)} Arab settlements receive less than counterfactual")
+print(f"  Mean gap: {cf_mean_gap} pp, Median gap: {cf_median_gap} pp")
+print(f"  Flagged (top quartile, gap >= {cf_gap_threshold:.1f} pp): {n_cf_flagged}")
+print(f"  Estimated missing beneficiaries: ~{cf_missing_people:,}")
 
 # ── Gap analysis ─────────────────────────────────────────────────────────────
 
@@ -722,29 +841,29 @@ if xgb_available:
 df_gap["mean_pred_rate"] = mean_pred_oof
 df_gap["gap_pp"] = df_gap["mean_pred_rate"] - df_gap["actual_rate"]
 
-actual_high_threshold = float(np.quantile(y, 0.75))
-expected_high_threshold = float(np.quantile(mean_pred_oof, 0.75))
+# Residual-based segmentation (±1.5σ from diagonal — consistent with OLS approach)
+gap_std = float(np.std(df_gap["gap_pp"]))
+gap_threshold = 1.5 * gap_std  # ≈ 1.95 pp
 
 
 def _segment(row: pd.Series) -> str:
-    if row["mean_pred_rate"] >= expected_high_threshold and row["actual_rate"] < actual_high_threshold:
+    gap = row["gap_pp"]  # positive = model expects more than actual (under-utilization)
+    if gap >= gap_threshold:
         return "Potential Under-utilization"
-    if row["mean_pred_rate"] < expected_high_threshold and row["actual_rate"] >= actual_high_threshold:
+    if gap <= -gap_threshold:
         return "Hidden Burden"
-    if row["mean_pred_rate"] >= expected_high_threshold and row["actual_rate"] >= actual_high_threshold:
-        return "Both High"
-    return "Both Lower"
+    return "Normal"
 
 
 df_gap["segment"] = df_gap.apply(_segment, axis=1)
 
-segment_order = ["Both Lower", "Both High", "Potential Under-utilization", "Hidden Burden"]
+segment_order = ["Normal", "Potential Under-utilization", "Hidden Burden"]
 gap_scatter_data: dict[str, dict] = {}
 for seg in segment_order:
     sub = df_gap[df_gap["segment"] == seg]
     gap_scatter_data[seg] = {
-        "x": sub["actual_rate"].round(2).tolist(),
-        "y": sub["mean_pred_rate"].round(2).tolist(),
+        "x": sub["mean_pred_rate"].round(2).tolist(),
+        "y": sub["actual_rate"].round(2).tolist(),
         "names": sub["settlement_name"].tolist() if "settlement_name" in sub.columns else [],
         "gap": sub["gap_pp"].round(2).tolist(),
     }
@@ -763,9 +882,28 @@ arab_pct_col = pd.to_numeric(
     df_gap.get("arab_population_percentage", pd.Series(dtype=float)), errors="coerce"
 ).fillna(0)
 arab_under = under_candidates[arab_pct_col.reindex(under_candidates.index).fillna(0) > 50]
+arab_hidden = hidden_candidates[arab_pct_col.reindex(hidden_candidates.index).fillna(0) > 50]
 n_arab = int(arab_mask.sum())
 n_arab_under = len(arab_under)
+n_arab_hidden = len(arab_hidden)
 under_arab_pct = round(len(arab_under) / n_under * 100) if n_under > 0 else 0
+hidden_arab_pct = round(len(arab_hidden) / n_hidden * 100) if n_hidden > 0 else 0
+
+# Haredi breakdown
+haredi_pct_col = pd.to_numeric(
+    df_gap.get("haredi_population_percentage", pd.Series(dtype=float)), errors="coerce"
+).fillna(0)
+haredi_under = under_candidates[haredi_pct_col.reindex(under_candidates.index).fillna(0) > 50]
+haredi_hidden = hidden_candidates[haredi_pct_col.reindex(hidden_candidates.index).fillna(0) > 50]
+n_haredi_under = len(haredi_under)
+n_haredi_hidden = len(haredi_hidden)
+under_haredi_pct = round(n_haredi_under / n_under * 100) if n_under > 0 else 0
+hidden_haredi_pct = round(n_haredi_hidden / n_hidden * 100) if n_hidden > 0 else 0
+
+# Other (secular/mixed)
+n_other_under = n_under - n_arab_under - n_haredi_under
+n_other_hidden = n_hidden - n_arab_hidden - n_haredi_hidden
+under_other_pct = round(n_other_under / n_under * 100) if n_under > 0 else 0
 
 # ── Intergenerational analysis (Q2) ─────────────────────────────────────────
 
@@ -781,14 +919,35 @@ rho_overall, pval_overall = spearmanr(
 )
 rho_overall = round(rho_overall, 3)
 
-periph_periphery = periph_cluster.isin([1, 2, 3])
+# Pearson for overall
+r_overall, p_r_overall = pearsonr(
+    child_rate_col[inter_valid], adult_rate_col[inter_valid]
+)
+r_overall = round(r_overall, 3)
+r2_inter = round(r_overall ** 2 * 100, 1)
+
+# Periphery split: 1-5 = peripheral, 6-10 = non-peripheral (notebook convention)
+periph_periphery = periph_cluster.isin([1, 2, 3, 4, 5])
+periph_nonperiph = periph_cluster.isin([6, 7, 8, 9, 10])
+# Keep old 3-tier for scatter colours
+periph_outer = periph_cluster.isin([1, 2, 3])
 periph_center = periph_cluster.isin([8, 9, 10])
 
 mask_periph = inter_valid & periph_periphery
 rho_periph, _ = spearmanr(child_rate_col[mask_periph], adult_rate_col[mask_periph])
+r_periph, p_r_periph = pearsonr(child_rate_col[mask_periph], adult_rate_col[mask_periph])
 rho_periph = round(rho_periph, 3)
+r_periph = round(r_periph, 3)
 n_periph = int(mask_periph.sum())
 
+mask_nonperiph = inter_valid & periph_nonperiph
+rho_nonperiph, _ = spearmanr(child_rate_col[mask_nonperiph], adult_rate_col[mask_nonperiph])
+r_nonperiph, p_r_nonperiph = pearsonr(child_rate_col[mask_nonperiph], adult_rate_col[mask_nonperiph])
+rho_nonperiph = round(rho_nonperiph, 3)
+r_nonperiph = round(r_nonperiph, 3)
+n_nonperiph = int(mask_nonperiph.sum())
+
+# Keep center (8-10) stats for display
 mask_center = inter_valid & periph_center
 rho_center, _ = spearmanr(child_rate_col[mask_center], adult_rate_col[mask_center])
 rho_center = round(rho_center, 3)
@@ -796,41 +955,186 @@ n_center = int(mask_center.sum())
 
 n_inter = int(inter_valid.sum())
 
-# Scatter data for Chart.js
+# Fisher's Z test (Pearson: peripheral vs non-peripheral)
+def _fisher_z(r1: float, n1: int, r2: float, n2: int):
+    if any(abs(r) >= 1 or k < 4 for r, k in [(r1, n1), (r2, n2)]):
+        return float("nan"), float("nan")
+    z1, z2 = np.arctanh(r1), np.arctanh(r2)
+    se = np.sqrt(1 / (n1 - 3) + 1 / (n2 - 3))
+    z = (z1 - z2) / se
+    p = 2 * (1 - sp_norm.cdf(abs(z)))
+    return round(z, 3), round(p, 4)
+
+fisher_z, fisher_p = _fisher_z(r_periph, n_periph, r_nonperiph, n_nonperiph)
+fisher_sig = "p < 0.05" if fisher_p < 0.05 else f"p = {fisher_p}"
+
+# High-Risk Cluster: both adult + child > P75
+gdr_p75 = float(adult_rate_col[inter_valid].quantile(0.75))
+dcr_p75 = float(child_rate_col[inter_valid].quantile(0.75))
+hr_mask = (adult_rate_col > gdr_p75) & (child_rate_col > dcr_p75) & inter_valid
+n_high_risk = int(hr_mask.sum())
+high_risk_pct = round(n_high_risk / n_inter * 100, 1)
+
+# Compare SES medians: high-risk vs rest
+ses_col = pd.to_numeric(df.loc[df_reg.index, "socio_economic_index_score"], errors="coerce")
+sal_col = pd.to_numeric(df.loc[df_reg.index, "average_monthly_salary_2023"], errors="coerce")
+ses_hr = ses_col[hr_mask].median()
+ses_rest = ses_col[inter_valid & ~hr_mask].median()
+sal_hr = sal_col[hr_mask].median()
+sal_rest = sal_col[inter_valid & ~hr_mask].median()
+
+# High-risk cluster boxplot data (6 indicators)
+HR_INDICATORS = [
+    ("socio_economic_index_score", "Socio-Economic Score"),
+    ("peripherality_index_score", "Peripherality Score"),
+    ("average_monthly_salary_2023", "Avg Salary (₪)"),
+    ("income_support_rate", "Income Support Rate (%)"),
+    ("edu_bagrut_eligibility_pct", "Bagrut Eligibility (%)"),
+    ("edu_attain_pct_academic_degree", "Academic Degree (%)"),
+]
+hr_boxplot_data = {"indicators": [], "high_risk": [], "rest": []}
+for col_name, label in HR_INDICATORS:
+    if col_name not in df.columns:
+        continue
+    vals = pd.to_numeric(df.loc[df_reg.index, col_name], errors="coerce")
+    hr_vals = vals[hr_mask].dropna().tolist()
+    rest_vals = vals[inter_valid & ~hr_mask].dropna().tolist()
+    hr_boxplot_data["indicators"].append(label)
+    hr_boxplot_data["high_risk"].append([round(float(v), 2) for v in hr_vals])
+    hr_boxplot_data["rest"].append([round(float(v), 2) for v in rest_vals])
+
+# Scatter data for Chart.js — dual panel (peripheral vs non-peripheral)
+ses_cluster_col = pd.to_numeric(df.loc[df_reg.index, "socio_economic_index_cluster"], errors="coerce")
+pop_col = pd.to_numeric(df.loc[df_reg.index, "total_population"], errors="coerce").fillna(5000)
+
+from scipy.stats import linregress as _linregress
+
 inter_scatter_data = {"groups": []}
-for group_label, group_mask, color in [
-    ("Periphery (1-3)", periph_periphery & inter_valid, "#DD8452"),
-    ("Middle (4-7)", (~periph_periphery & ~periph_center) & inter_valid, "#8172B3"),
-    ("Center (8-10)", periph_center & inter_valid, "#4C72B0"),
+for group_label, group_mask, color, grp_r, grp_p, grp_n in [
+    ("Peripheral (1-5)", periph_periphery & inter_valid, "#DD8452", r_periph, p_r_periph, n_periph),
+    ("Non-Peripheral (6-10)", periph_nonperiph & inter_valid, "#4C72B0", r_nonperiph, p_r_nonperiph, n_nonperiph),
 ]:
     sub_child = child_rate_col[group_mask].round(2).tolist()
     sub_adult = adult_rate_col[group_mask].round(2).tolist()
     sub_names = df.loc[df_reg.index[group_mask], "settlement_name"].tolist() if "settlement_name" in df.columns else []
+    sub_ses = ses_cluster_col[group_mask].fillna(5).astype(int).tolist()
+    # OLS trend line endpoints
+    xv = np.array(sub_child, dtype=float)
+    yv = np.array(sub_adult, dtype=float)
+    valid = ~(np.isnan(xv) | np.isnan(yv))
+    if valid.sum() >= 4:
+        slope, intercept, *_ = _linregress(xv[valid], yv[valid])
+        x_min, x_max = float(xv[valid].min()), float(xv[valid].max())
+        trend = {"x0": round(x_min, 2), "y0": round(slope * x_min + intercept, 2),
+                 "x1": round(x_max, 2), "y1": round(slope * x_max + intercept, 2),
+                 "slope": round(slope, 3)}
+    else:
+        trend = None
     inter_scatter_data["groups"].append({
         "name": group_label,
         "child_rate": sub_child,
         "adult_rate": sub_adult,
         "names": sub_names,
+        "ses_cluster": sub_ses,
         "color": color,
+        "r": grp_r, "n": grp_n,
+        "trend": trend,
     })
 
-print(f"  Overall rho={rho_overall}, Periphery rho={rho_periph} (N={n_periph}), Center rho={rho_center} (N={n_center})")
+print(f"  Overall r={r_overall}, rho={rho_overall} (N={n_inter})")
+print(f"  Peripheral r={r_periph} (N={n_periph}), Non-peripheral r={r_nonperiph} (N={n_nonperiph})")
+print(f"  Fisher Z={fisher_z}, p={fisher_p}")
+print(f"  High-Risk Cluster: {n_high_risk} settlements ({high_risk_pct}%)")
 
 
 # ── HTML generation ──────────────────────────────────────────────────────────
 
 print("Generating HTML ...")
 
-# Build top-10 underutilization table rows for Section 3
-table_rows_html = ""
+# Build ensemble underutilization table rows
+ensemble_pop = pd.to_numeric(
+    df.loc[df_reg.index, "total_population"], errors="coerce"
+).values
+ensemble_table_rows = ""
+for rank, idx in enumerate(under_candidates.index):
+    pos = list(df_reg.index).index(idx)
+    name = under_candidates.loc[idx, "settlement_name"]
+    actual = under_candidates.loc[idx, "actual_rate"]
+    predicted = under_candidates.loc[idx, "mean_pred_rate"]
+    gap = under_candidates.loc[idx, "gap_pp"]
+    pop = int(ensemble_pop[pos]) if not np.isnan(ensemble_pop[pos]) else 0
+    ensemble_table_rows += f"""<tr>
+      <td>{rank + 1}</td>
+      <td>{html_lib.escape(str(name))}</td>
+      <td>{actual:.2f}%</td>
+      <td>{predicted:.2f}%</td>
+      <td style="color:#55A868;font-weight:600;">{gap:+.2f}</td>
+      <td>{pop:,}</td>
+    </tr>"""
+
+# Build OLS underutilization table rows
+ols_table_rows = ""
 for i, (name, actual, predicted, residual, pop) in enumerate(top_under_table):
-    table_rows_html += f"""<tr>
+    ols_table_rows += f"""<tr>
       <td>{i + 1}</td>
       <td>{html_lib.escape(str(name))}</td>
       <td>{actual:.2f}%</td>
       <td>{predicted:.2f}%</td>
-      <td style="color:var(--positive);font-weight:600;">{residual:+.2f}</td>
+      <td style="color:var(--negative);font-weight:600;">{residual:+.2f}</td>
       <td>{pop:,}</td>
+    </tr>"""
+
+# Build OLS prediction lookup for explorer table
+ols_pred_map = dict(zip(df_ols_clean.index, y_ols_pred))
+ols_actual_map = dict(zip(df_ols_clean.index, y_ols))
+ols_resid_map = dict(zip(df_ols_clean.index, ols_residuals))
+
+# Build full settlement explorer table (all settlements, sorted by gap)
+all_settlements_rows = ""
+df_gap_sorted = df_gap.sort_values("gap_pp", ascending=False)
+for rank, (idx, row) in enumerate(df_gap_sorted.iterrows()):
+    pos = list(df_reg.index).index(idx)
+    name = row.get("settlement_name", "")
+    actual = row["actual_rate"]
+    predicted = row["mean_pred_rate"]
+    gap = row["gap_pp"]
+    pop = int(ensemble_pop[pos]) if not np.isnan(ensemble_pop[pos]) else 0
+    seg = row["segment"]
+    arab = row.get("arab_population_percentage", 0)
+    haredi_v = pd.to_numeric(df.loc[idx, "haredi_population_percentage"], errors="coerce") if "haredi_population_percentage" in df.columns else 0
+    if pd.isna(arab): arab = 0
+    if pd.isna(haredi_v): haredi_v = 0
+    group = "Arab" if arab > 50 else ("Haredi" if haredi_v > 50 else "Other")
+    gap_color = "#55A868" if gap > 0 else "#C44E52"
+    seg_badge = ""
+    if seg == "Potential Under-utilization":
+        seg_badge = '<span style="background:#55A868;color:#fff;padding:1px 6px;border-radius:3px;font-size:0.75rem;">Under-util</span>'
+    elif seg == "Hidden Burden":
+        seg_badge = '<span style="background:#C44E52;color:#fff;padding:1px 6px;border-radius:3px;font-size:0.75rem;">Hidden</span>'
+    # OLS status for this settlement
+    ols_seg = ols_status_map.get(idx, "")
+    ols_badge = ""
+    if ols_seg == "Underutilization":
+        ols_badge = '<span style="background:#55A868;color:#fff;padding:1px 6px;border-radius:3px;font-size:0.75rem;">Under-util</span>'
+    elif ols_seg == "Dependency":
+        ols_badge = '<span style="background:#C44E52;color:#fff;padding:1px 6px;border-radius:3px;font-size:0.75rem;">Hidden</span>'
+    # OLS predicted values for this settlement
+    ols_pred_v = ols_pred_map.get(idx, float("nan"))
+    ols_actual_v = ols_actual_map.get(idx, float("nan"))
+    ols_resid_v = ols_resid_map.get(idx, float("nan"))
+    has_ols = not np.isnan(ols_pred_v)
+    ols_gap_v = -ols_resid_v if has_ols else float("nan")  # positive = under-util (predicted > actual)
+    ols_pred_str = f"{ols_pred_v:.1f}" if has_ols else ""
+    ols_gap_str = f"{ols_gap_v:+.1f}" if has_ols else ""
+    all_settlements_rows += f"""<tr data-ens-pred="{predicted:.1f}" data-ens-gap="{gap:+.1f}" data-ols-pred="{ols_pred_str}" data-ols-gap="{ols_gap_str}">
+      <td>{html_lib.escape(str(name))}</td>
+      <td>{actual:.1f}%</td>
+      <td class="col-pred">{predicted:.1f}%</td>
+      <td class="col-gap" style="color:{gap_color};font-weight:600;">{gap:+.1f}</td>
+      <td>{pop:,}</td>
+      <td>{group}</td>
+      <td>{seg_badge}</td>
+      <td>{ols_badge}</td>
     </tr>"""
 
 # ── Assemble the full HTML ──────────────────────────────────────────────────
@@ -840,7 +1144,7 @@ html_output = f"""<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Disability Under-Utilization: Where Need Meets Silence</title>
+  <title>Where Need Meets Silence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -851,7 +1155,7 @@ html_output = f"""<!DOCTYPE html>
       --bg-card: #ffffff;
       --bg-header: #1a1a2e;
       --text-primary: #212529;
-      --text-secondary: #6c757d;
+      --text-secondary: #495057;
       --text-on-dark: #ffffff;
       --color-1: #4C72B0;
       --color-2: #DD8452;
@@ -861,6 +1165,7 @@ html_output = f"""<!DOCTYPE html>
       --color-6: #937860;
       --positive: #28a745;
       --negative: #dc3545;
+      --neutral: #4C72B0;
       --gap: 16px;
       --radius: 8px;
     }}
@@ -885,28 +1190,29 @@ html_output = f"""<!DOCTYPE html>
       display: flex;
       align-items: center;
       padding: 0 24px;
-      height: 56px;
+      height: 52px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }}
     .top-nav .brand {{
       font-weight: 700;
-      font-size: 1rem;
-      margin-right: 32px;
+      font-size: 0.9rem;
+      margin-right: 28px;
       white-space: nowrap;
     }}
     .top-nav .nav-links {{
       display: flex;
-      gap: 4px;
+      gap: 2px;
       overflow-x: auto;
-      scrollbar-width: none;
+      scrollbar-width: thin;
     }}
-    .top-nav .nav-links::-webkit-scrollbar {{ display: none; }}
+    .top-nav .nav-links::-webkit-scrollbar {{ height: 3px; }}
+    .top-nav .nav-links::-webkit-scrollbar-thumb {{ background: rgba(255,255,255,0.3); border-radius: 2px; }}
     .top-nav .nav-links a {{
       color: rgba(255,255,255,0.7);
       text-decoration: none;
-      padding: 6px 14px;
+      padding: 5px 12px;
       border-radius: 6px;
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       font-weight: 500;
       white-space: nowrap;
       transition: all 0.2s;
@@ -928,21 +1234,43 @@ html_output = f"""<!DOCTYPE html>
     }}
 
     .section {{
-      margin-bottom: 48px;
-      scroll-margin-top: 72px;
+      margin-bottom: 64px;
+      scroll-margin-top: 68px;
+      border-top: 1px solid #dee2e6;
+      padding-top: 32px;
+    }}
+    .section:first-child {{
+      border-top: none;
+      padding-top: 0;
     }}
 
     .section-title {{
       font-size: 1.5rem;
       font-weight: 700;
       color: var(--text-primary);
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }}
 
     .section-subtitle {{
-      font-size: 0.95rem;
+      font-size: 1.05rem;
       color: var(--text-secondary);
       margin-bottom: 20px;
+      max-width: 720px;
+      line-height: 1.5;
+    }}
+
+    /* ── Q-badges ── */
+    .q-badge {{
+      display: inline-block;
+      background: var(--color-1);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 12px;
+      margin-right: 8px;
+      vertical-align: middle;
+      letter-spacing: 0.03em;
     }}
 
     /* ── KPI Cards ── */
@@ -966,16 +1294,27 @@ html_output = f"""<!DOCTYPE html>
       color: var(--color-1);
       line-height: 1.2;
     }}
-    .kpi-card .kpi-value.accent {{ color: var(--color-2); }}
-    .kpi-card .kpi-value.positive {{ color: var(--positive); }}
-    .kpi-card .kpi-value.negative {{ color: var(--negative); }}
+    .kpi-card.hero .kpi-value {{
+      font-size: 2.8rem;
+    }}
+    .kpi-card.secondary .kpi-value {{
+      font-size: 1.8rem;
+      color: var(--text-secondary);
+    }}
+    .kpi-card .kpi-value.problem {{ color: var(--negative); }}
+    .kpi-card .kpi-value.solution {{ color: var(--positive); }}
+    .kpi-card .kpi-value.neutral {{ color: var(--neutral); }}
     .kpi-card .kpi-label {{
       font-size: 0.82rem;
       color: var(--text-secondary);
       margin-top: 6px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      font-weight: 600;
+    }}
+    .kpi-context {{
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      line-height: 1.3;
     }}
 
     /* ── Cards grid ── */
@@ -998,12 +1337,15 @@ html_output = f"""<!DOCTYPE html>
       font-size: 1rem;
       font-weight: 600;
       margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #f1f3f5;
       color: var(--text-primary);
     }}
     .card p {{
       font-size: 0.9rem;
       color: var(--text-secondary);
       line-height: 1.7;
+      max-width: 600px;
     }}
     .card ul {{
       padding-left: 18px;
@@ -1023,12 +1365,18 @@ html_output = f"""<!DOCTYPE html>
       padding: 20px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       border: 1px solid #e9ecef;
-      margin-bottom: var(--gap);
+      margin-bottom: 24px;
     }}
     .chart-card .chart-title {{
       font-size: 0.95rem;
       font-weight: 600;
       color: var(--text-primary);
+      margin-bottom: 4px;
+    }}
+    .chart-annotation {{
+      font-size: 0.82rem;
+      font-style: italic;
+      color: var(--text-secondary);
       margin-bottom: 12px;
     }}
     .chart-card .chart-wrap {{
@@ -1037,6 +1385,9 @@ html_output = f"""<!DOCTYPE html>
       height: 340px;
     }}
     .chart-card .chart-wrap.tall {{
+      height: 420px;
+    }}
+    .chart-card .chart-wrap.hbar {{
       height: 420px;
     }}
     .chart-card canvas {{
@@ -1064,8 +1415,6 @@ html_output = f"""<!DOCTYPE html>
       text-align: left;
       font-weight: 600;
       color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
       font-size: 0.75rem;
       border-bottom: 2px solid #dee2e6;
       cursor: pointer;
@@ -1121,6 +1470,48 @@ html_output = f"""<!DOCTYPE html>
     }}
     .insight-callout strong {{ color: #154360; }}
 
+    /* ── TL;DR box ── */
+    .tldr-box {{
+      background: #fffbeb;
+      border: 2px solid #f59e0b;
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }}
+    .tldr-box .tldr-label {{
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #92400e;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }}
+    .tldr-box p {{
+      font-size: 0.95rem;
+      color: #78350f;
+      line-height: 1.6;
+      max-width: 720px;
+    }}
+    .tldr-box strong {{ color: #451a03; }}
+
+    /* ── Pull quote ── */
+    .pull-quote {{
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--negative);
+      line-height: 1.4;
+      margin: 16px 0;
+      padding: 16px 24px;
+      border-left: 4px solid var(--negative);
+      background: #fff5f5;
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }}
+    .pull-quote .pq-source {{
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }}
+
     /* ── Rec cards ── */
     .rec-grid {{
       display: grid;
@@ -1169,12 +1560,16 @@ html_output = f"""<!DOCTYPE html>
     .header-banner h1 {{
       font-size: 2rem;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }}
     .header-banner .subtitle {{
       font-size: 1.05rem;
-      color: rgba(255,255,255,0.7);
+      color: rgba(255,255,255,0.75);
       margin-bottom: 16px;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.5;
     }}
     .header-banner .meta {{
       font-size: 0.82rem;
@@ -1192,6 +1587,8 @@ html_output = f"""<!DOCTYPE html>
       .rec-grid {{ grid-template-columns: 1fr; }}
       .chart-card .chart-wrap {{ height: 280px; }}
       .chart-card .chart-wrap.tall {{ height: 320px; }}
+      .chart-card .chart-wrap.hbar {{ height: 320px; }}
+      .pull-quote {{ font-size: 1.1rem; }}
     }}
 
     /* ── Print ── */
@@ -1201,6 +1598,17 @@ html_output = f"""<!DOCTYPE html>
       .section {{ break-inside: avoid; page-break-inside: avoid; }}
       .chart-card {{ break-inside: avoid; page-break-inside: avoid; }}
       .chart-card, .card, .kpi-card {{ box-shadow: none; border: 1px solid #ccc; }}
+      .chart-card .chart-wrap, .chart-card .chart-wrap.tall, .chart-card .chart-wrap.hbar {{ height: 260px; }}
+      .big-number-card .big-val {{ font-size: 2.5rem; }}
+    }}
+
+    /* ── Reduced motion ── */
+    @media (prefers-reduced-motion: reduce) {{
+      *, *::before, *::after {{
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }}
     }}
   </style>
 </head>
@@ -1210,205 +1618,269 @@ html_output = f"""<!DOCTYPE html>
 <nav class="top-nav">
   <div class="brand">Where Need Meets Silence</div>
   <div class="nav-links">
-    <a href="#overview" class="active">Overview</a>
-    <a href="#drivers">Drivers</a>
-    <a href="#underutil">Q1: Under-Utilization</a>
-    <a href="#intergen">Q2: Intergenerational</a>
-    <a href="#arabwall">The Wall</a>
-    <a href="#conflict">Q3: Swords of Iron</a>
-    <a href="#distance">Q4: Distance</a>
-    <a href="#evidence">Evidence</a>
-    <a href="#recommendations">Recommendations</a>
+    <a href="#problem" class="active">The Problem</a>
+    <a href="#missing">Missing Claimants</a>
+    <a href="#childhood">Childhood Cycle</a>
+    <a href="#wall">The Wall</a>
+    <a href="#ruled-out">Ruled Out</a>
+    <a href="#drivers">What Drives It</a>
+    <a href="#action">Action Plan</a>
   </div>
 </nav>
 
 <!-- Header Banner -->
 <header class="header-banner">
-  <h1>Disability Under-Utilization: Where Need Meets Silence</h1>
-  <p class="subtitle">Machine Learning Reveals Hidden Access Barriers Across 278 Israeli Settlements</p>
-  <p class="meta">TovTech Research Group &nbsp;|&nbsp; Data: National Insurance Institute, Dec 2024 &nbsp;|&nbsp; EXPERIMENTAL DASHBOARD</p>
+  <h1>Where Need Meets Silence</h1>
+  <p class="subtitle">Why do some Israeli communities receive far fewer disability benefits than their conditions would predict?</p>
+  <p class="meta">TovTech Research Group &nbsp;|&nbsp; National Insurance Institute data, Dec 2024 &nbsp;|&nbsp; 278 settlements &nbsp;|&nbsp; 4 research questions</p>
 </header>
 
 <div class="dashboard">
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- Section 1: Overview + KPI Cards -->
+<!-- Section 1: The Problem -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<div class="section" id="overview">
-  <h2 class="section-title">Overview</h2>
-  <p class="section-subtitle">Key metrics from the analysis of Israeli settlement-level disability benefit data</p>
+<div class="section" id="problem" style="border-top:none;padding-top:0;">
+  <h2 class="section-title">People Who Qualify for Disability Benefits Are Not Receiving Them</h2>
+  <p class="section-subtitle">Israel&rsquo;s National Insurance Institute pays disability benefits to hundreds of thousands of people.
+  But in some settlements, far fewer people claim than we would expect given their socio-economic conditions.
+  We analyzed {n_reg} settlements with {n_features} indicators to find out where &mdash; and why.</p>
+
+  <div class="tldr-box">
+    <div class="tldr-label">What we did</div>
+    <p>We trained machine learning models to predict disability benefit rates from socio-economic data
+    (income, education, demographics, geography). Settlements where <strong>actual claiming is far below
+    the prediction</strong> are potential under-utilization pockets &mdash; places where eligible people
+    may face barriers to access.</p>
+  </div>
 
   <div class="kpi-row">
-    <div class="kpi-card">
-      <div class="kpi-value">{n_reg}</div>
+    <div class="kpi-card hero">
+      <div class="kpi-value neutral">{n_reg}</div>
       <div class="kpi-label">Settlements Analyzed</div>
+      <div class="kpi-context">Across all regions and population groups</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-value accent">{n_features}</div>
-      <div class="kpi-label">Socio-Economic Features</div>
+    <div class="kpi-card hero">
+      <div class="kpi-value neutral">{n_features}</div>
+      <div class="kpi-label">Socio-Economic Indicators</div>
+      <div class="kpi-context">Income, education, demographics, geography</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-value positive">{best_r2_val}</div>
-      <div class="kpi-label">Best Model R&sup2;</div>
+    <div class="kpi-card secondary">
+      <div class="kpi-value neutral">4</div>
+      <div class="kpi-label">Research Questions</div>
+      <div class="kpi-context">Under-utilization, intergenerational, conflict, distance</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-value negative">{n_under}</div>
-      <div class="kpi-label">Flagged Under-Utilization</div>
+    <div class="kpi-card secondary">
+      <div class="kpi-value neutral">4</div>
+      <div class="kpi-label">ML Models</div>
+      <div class="kpi-context">Random Forest, XGBoost, TabPFN, Linear Regression</div>
     </div>
-  </div>
-
-  <div class="insight-callout">
-    <strong>Four research questions, one conclusion:</strong> disability benefit under-utilization
-    is concentrated, intergenerational, structural, and invisible to standard data. Our models
-    explain ~{round(best_r2_val * 100)}% of the variation overall but hit a wall for Arab
-    settlements (R&sup2; = {arab_best_r2:.2f}).
   </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- Section 2: What Drives Disability Rates? -->
+<!-- Section 2: Missing Claimants (Q1) -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<div class="section" id="drivers">
-  <h2 class="section-title">Income Support Rate Is the Strongest Driver of Disability</h2>
-  <p class="section-subtitle">Two complementary views: OLS reveals direction, tree models reveal importance</p>
+<div class="section" id="missing">
+  <h2 class="section-title"><span class="q-badge">Research Question 1</span> Settlements That Claim Far Less Than Their Conditions Predict</h2>
+  <p class="section-subtitle">We used two methods &mdash; a non-linear ensemble and a linear regression &mdash; to predict disability rates from socio-economic data. Both use &plusmn;1.5&sigma; residuals to flag anomalies. Each method reveals a different blind spot.</p>
 
-  <div class="card-grid">
-    <div class="chart-card">
-      <div class="chart-title">OLS Standardized Coefficients &mdash; Red Increases, Blue Decreases Disability</div>
-      <div class="chart-wrap"><canvas id="chart_ols_coeff"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">RF/XGB Feature Importance &mdash; Which Variables Matter Most</div>
-      <div class="chart-wrap"><canvas id="chart_importance"></canvas></div>
-    </div>
-  </div>
-
-  <div class="insight-callout">
-    <strong>Why two charts?</strong> The OLS chart (left) shows <em>direction</em>:
-    red bars increase disability rates, blue bars decrease them. Income support rate
-    is the strongest positive driver; salary is the strongest negative driver.
-    The tree model chart (right) shows <em>magnitude</em> of importance regardless
-    of direction. Both methods agree on the same key factors.
-    OLS R&sup2; = {ols_cv_r2} (5-fold CV). Best tree R&sup2; = {best_r2_val}.
-  </div>
-</div>
-
-<!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- Section 3: Under-Utilization Pockets (Q1) -->
-<!-- ════════════════════════════════════════════════════════════════════════ -->
-<div class="section" id="underutil">
-  <h2 class="section-title">{n_under} Settlements Claim Far Less Than Expected</h2>
-  <p class="section-subtitle">Q1: Ensemble model (RF + XGB + TabPFN) flags potential under-utilization, OLS confirms with residual-based anomalies</p>
-
-  <div class="kpi-row">
-    <div class="kpi-card">
-      <div class="kpi-value positive">{n_under}</div>
-      <div class="kpi-label">Under-Utilization (Ensemble)</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-value negative">{n_hidden}</div>
-      <div class="kpi-label">Hidden Burden (Ensemble)</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-value">{under_arab_pct}%</div>
-      <div class="kpi-label">Flagged Are Arab-Majority</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-value accent">{best_r2_val}</div>
-      <div class="kpi-label">Best Model R&sup2;</div>
-    </div>
-  </div>
-
+  <!-- ── Ensemble ── -->
+  <h3 style="font-size:1.05rem;font-weight:600;margin:0 0 12px;color:var(--text-primary);">Ensemble Model (RF + XGBoost + TabPFN) &mdash; 15 features</h3>
   <div class="chart-card">
-    <div class="chart-title">Ensemble Model: Expected vs Observed Disability Rate &mdash; 4 Segments (RF + XGB + TabPFN)</div>
+    <div class="chart-title">Expected vs Observed Disability Rate</div>
+    <div class="chart-annotation"><strong style="color:#55A868;">Green diamonds</strong> = under-utilization. <strong style="color:#C44E52;">Red crosses</strong> = hidden burden. Dashed bands = &plusmn;1.5&sigma; ({round(gap_threshold, 1)} pp).</div>
+    <div style="margin:8px 0 4px;display:flex;align-items:center;gap:8px;">
+      <input id="search_ensemble" type="text" placeholder="Search settlement..." style="padding:5px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;width:220px;outline:none;" />
+      <span id="search_ensemble_result" style="font-size:0.8rem;color:var(--text-secondary);"></span>
+    </div>
     <div class="chart-wrap tall"><canvas id="chart_gap_scatter"></canvas></div>
   </div>
 
-  <div class="insight-callout">
-    <strong>Reading the chart above:</strong>
-    <strong style="color:#F59E0B;">Gold diamonds</strong> = {n_under} settlements where observed claiming is far below expected (potential under-utilization).
-    <strong style="color:#F43F5E;">Red crosses</strong> = {n_hidden} settlements where observed claiming exceeds expectations (hidden burden).
-    The diagonal line = perfect prediction. This chart uses the average of our 3 tree models.
+  <div class="kpi-row">
+    <div class="kpi-card hero">
+      <div class="kpi-value" style="color:#55A868;">{n_under}</div>
+      <div class="kpi-label">Under-Utilization</div>
+      <div class="kpi-context">Actual &lt; expected by &ge; {round(gap_threshold, 1)} pp</div>
+    </div>
+    <div class="kpi-card hero">
+      <div class="kpi-value problem">{n_hidden}</div>
+      <div class="kpi-label">Hidden Burden</div>
+      <div class="kpi-context">Actual &gt; expected by &ge; {round(gap_threshold, 1)} pp</div>
+    </div>
   </div>
 
+  <div class="card-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="card" style="border-top:3px solid #6366F1;">
+      <h3>Haredi &mdash; {under_haredi_pct}%</h3>
+      <p><strong>{n_haredi_under} of {n_under}</strong> under-utilization settlements are Haredi-majority (&gt;50%).</p>
+    </div>
+    <div class="card" style="border-top:3px solid #F59E0B;">
+      <h3>Arab / Druze &mdash; {under_arab_pct}%</h3>
+      <p><strong>{n_arab_under} of {n_under}</strong> under-utilization settlements are Arab-majority (&gt;50%).</p>
+    </div>
+    <div class="card" style="border-top:3px solid #94A3B8;">
+      <h3>Other &mdash; {under_other_pct}%</h3>
+      <p><strong>{n_other_under} of {n_under}</strong> are smaller secular/mixed settlements.</p>
+    </div>
+  </div>
+
+  <!-- ── Linear Regression ── -->
+  <h3 style="font-size:1.05rem;font-weight:600;margin:28px 0 12px;color:var(--text-primary);">Linear Regression &mdash; 8 features, R&sup2; = {ols_r2_full}</h3>
   <div class="chart-card">
-    <div class="chart-title">OLS Independent Validation: Actual vs Predicted (threshold &plusmn;1.5&sigma;) &mdash; {n_ols_under} under-utilization, {n_ols_dependency} dependency</div>
+    <div class="chart-title">Expected vs Observed Disability Rate</div>
+    <div class="chart-annotation">Threshold &plusmn;1.5&sigma; flags <strong>{n_ols_under}</strong> under-utilization and <strong>{n_ols_dependency}</strong> hidden burden anomalies.</div>
+    <div style="margin:8px 0 4px;display:flex;align-items:center;gap:8px;">
+      <input id="search_ols" type="text" placeholder="Search settlement..." style="padding:5px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;width:220px;outline:none;" />
+      <span id="search_ols_result" style="font-size:0.8rem;color:var(--text-secondary);"></span>
+    </div>
     <div class="chart-wrap tall"><canvas id="chart_anomaly_scatter"></canvas></div>
   </div>
 
-  <h3 style="font-size:1rem;font-weight:600;margin:16px 0 8px;">Top 10 Under-Utilization Settlements</h3>
-  <div class="data-table-wrap">
-    <table class="data-table" id="anomaly_table">
-      <thead>
+  <div class="kpi-row">
+    <div class="kpi-card hero">
+      <div class="kpi-value" style="color:#55A868;">{n_ols_under}</div>
+      <div class="kpi-label">Under-Utilization</div>
+      <div class="kpi-context">Actual &lt; expected by &ge; {round(ols_threshold, 1)} pp</div>
+    </div>
+    <div class="kpi-card hero">
+      <div class="kpi-value problem">{n_ols_dependency}</div>
+      <div class="kpi-label">Hidden Burden</div>
+      <div class="kpi-context">Actual &gt; expected by &ge; {round(ols_threshold, 1)} pp</div>
+    </div>
+  </div>
+
+  <div class="card-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="card" style="border-top:3px solid #6366F1;">
+      <h3>Haredi &mdash; {ols_under_haredi_pct}%</h3>
+      <p><strong>{n_ols_haredi_under} of {n_ols_under}</strong> under-utilization settlements are Haredi-majority (&gt;50%).</p>
+    </div>
+    <div class="card" style="border-top:3px solid #F59E0B;">
+      <h3>Arab / Druze &mdash; {ols_under_arab_pct}%</h3>
+      <p><strong>{n_ols_arab_under} of {n_ols_under}</strong> under-utilization settlements are Arab-majority (&gt;50%).</p>
+    </div>
+    <div class="card" style="border-top:3px solid #94A3B8;">
+      <h3>Other &mdash; {ols_under_other_pct}%</h3>
+      <p><strong>{n_ols_other_under} of {n_ols_under}</strong> are other secular/mixed settlements.</p>
+    </div>
+  </div>
+
+  <div class="insight-callout">
+    <strong>Two methods, different blind spots:</strong> The ensemble (15 features, non-linear) flags mostly Haredi and mixed settlements. The linear regression (8 features) picks up more Arab settlements. Together they cover a wider range of potential under-utilization than either method alone.
+  </div>
+
+  <h3 style="font-size:1.1rem;font-weight:600;margin:28px 0 12px;">Explore All {n_reg} Settlements</h3>
+  <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;">
+    <input id="table_search" type="text" placeholder="&#128269; Search settlement name..." style="padding:8px 14px;border:2px solid #cbd5e1;border-radius:8px;font-size:0.95rem;width:260px;outline:none;background:#f8fafc;" />
+    <select id="table_filter_group" style="padding:8px 12px;border:2px solid #cbd5e1;border-radius:8px;font-size:0.9rem;background:#f8fafc;cursor:pointer;">
+      <option value="">All groups</option>
+      <option value="Arab">Arab (&gt;50%)</option>
+      <option value="Haredi">Haredi (&gt;50%)</option>
+      <option value="Other">Other</option>
+    </select>
+    <select id="table_filter_status" style="padding:8px 12px;border:2px solid #cbd5e1;border-radius:8px;font-size:0.9rem;background:#f8fafc;cursor:pointer;">
+      <option value="">All statuses</option>
+      <option value="ens-under">Ensemble: Under-utilization</option>
+      <option value="ens-hidden">Ensemble: Hidden burden</option>
+      <option value="ols-under">OLS: Under-utilization</option>
+      <option value="ols-hidden">OLS: Hidden burden</option>
+      <option value="any-flag">Any flag (either method)</option>
+    </select>
+    <span id="table_count" style="font-size:0.85rem;color:var(--text-secondary);"></span>
+  </div>
+  <div class="data-table-wrap" style="max-height:420px;overflow-y:auto;">
+    <table class="data-table" id="explorer_table">
+      <thead style="position:sticky;top:0;background:#fff;z-index:1;">
         <tr>
-          <th>#</th>
-          <th onclick="sortTable('anomaly_table', 1)">Settlement <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable('anomaly_table', 2)">Actual Rate <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable('anomaly_table', 3)">Predicted Rate <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable('anomaly_table', 4)">Residual <span class="sort-arrow">&#9650;&#9660;</span></th>
-          <th onclick="sortTable('anomaly_table', 5)">Population <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable('explorer_table', 0)">Settlement <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable('explorer_table', 1)">Actual <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable('explorer_table', 2)" id="th_pred">Expected (Ensemble) <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable('explorer_table', 3)" id="th_gap">Gap (Ensemble) <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable('explorer_table', 4)">Population <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th onclick="sortTable('explorer_table', 5)">Group <span class="sort-arrow">&#9650;&#9660;</span></th>
+          <th>Ensemble</th>
+          <th>OLS</th>
         </tr>
       </thead>
       <tbody>
-        {table_rows_html}
+        {all_settlements_rows}
       </tbody>
     </table>
   </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- Section 4: Intergenerational Trap (Q2) -->
+<!-- Section 3: Childhood Cycle (Q2) -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<div class="section" id="intergen">
-  <h2 class="section-title">The Pattern Persists Even in Affluent Areas</h2>
-  <p class="section-subtitle">Q2: Child disability benefit rate correlates with adult disability &mdash; &rho; = {rho_overall}</p>
+<div class="section" id="childhood">
+  <h2 class="section-title"><span class="q-badge">Research Question 2</span> Where Children Need Help, Adults Need It Too &mdash; Even in Wealthy Areas</h2>
+  <p class="section-subtitle">Child disability rates correlate with adult disability rates across all regions. The surprise: the correlation is <strong>stronger</strong> in non-peripheral settlements (Fisher&rsquo;s Z {fisher_sig}).</p>
 
+  <!-- KPI row: Overall + Peripheral vs Non-Peripheral -->
   <div class="kpi-row">
-    <div class="kpi-card">
-      <div class="kpi-value">{rho_overall}</div>
-      <div class="kpi-label">Overall Spearman &rho;</div>
+    <div class="kpi-card hero">
+      <div class="kpi-value neutral">{r_overall}</div>
+      <div class="kpi-label">Overall Pearson r</div>
+      <div class="kpi-context">&rho; = {rho_overall}, N = {n_inter} settlements</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-value accent">{rho_periph}</div>
-      <div class="kpi-label">Periphery &rho; (N={n_periph})</div>
+      <div class="kpi-value" style="color:var(--color-2);">{r_periph}</div>
+      <div class="kpi-label">Peripheral r (1-5, N={n_periph})</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-value" style="color:var(--color-1);">{rho_center}</div>
-      <div class="kpi-label">Center &rho; (N={n_center})</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-value">{n_inter}</div>
-      <div class="kpi-label">Settlements with Both Rates</div>
+      <div class="kpi-value neutral">{r_nonperiph}</div>
+      <div class="kpi-label">Non-Peripheral r (6-10, N={n_nonperiph})</div>
+      <div class="kpi-context">Fisher Z = {fisher_z}, {fisher_sig}</div>
     </div>
   </div>
 
+  <!-- Dual-panel scatter: Peripheral vs Non-Peripheral -->
   <div class="chart-card">
-    <div class="chart-title">Child Disability Rate vs Adult Disability Rate by Peripherality</div>
-    <div class="chart-wrap tall"><canvas id="chart_intergenerational"></canvas></div>
+    <div class="chart-title">Child Disability Rate vs Adult Disability Rate &mdash; Peripheral vs Non-Peripheral</div>
+    <div class="chart-annotation">Each dot is a settlement, colored by SES cluster (red=low, green=high). Dashed line = OLS trend. The steeper slope and tighter fit in non-peripheral settlements (r&nbsp;=&nbsp;{r_nonperiph}) confirms that the intergenerational pattern is <strong>not</strong> confined to the periphery.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="chart-wrap tall"><canvas id="chart_inter_periph"></canvas></div>
+      <div class="chart-wrap tall"><canvas id="chart_inter_nonperiph"></canvas></div>
+    </div>
+  </div>
+
+  <!-- High-Risk Cluster card -->
+  <div class="big-number-card" style="border-left:4px solid var(--negative);">
+    <div class="big-val">{n_high_risk}</div>
+    <div class="big-desc">settlements ({high_risk_pct}%) where <strong>both</strong> adult and child disability rates exceed the 75th percentile &mdash; potential intergenerational disability traps</div>
+  </div>
+
+  <!-- Boxplot: High-Risk vs Rest -->
+  <div class="chart-card">
+    <div class="chart-title">High-Risk Cluster vs Rest: Socio-Economic Profile</div>
+    <div class="chart-annotation">{n_high_risk} settlements where both adult &amp; child disability &gt; P75, compared against the remaining {n_inter - n_high_risk}. Median salary: &#8362;{sal_hr:,.0f} vs &#8362;{sal_rest:,.0f}.</div>
+    <div class="chart-wrap tall"><canvas id="chart_hr_boxplot"></canvas></div>
   </div>
 
   <div class="card-grid">
-    <div class="card">
-      <h3>What This Means</h3>
-      <p>Settlements where more children receive disability benefits also have higher
-      adult disability rates. This suggests a <strong>cycle of vulnerability</strong>:
-      conditions that lead to childhood disability persist into adulthood.</p>
+    <div class="card" style="border-top:3px solid var(--negative);">
+      <h3>The Pattern That Shouldn&rsquo;t Exist</h3>
+      <p>In non-peripheral settlements (r = {r_nonperiph}), the child-adult disability link is
+      <strong>stronger</strong> than in the periphery (r = {r_periph}).
+      The difference is statistically significant (Fisher&rsquo;s Z = {fisher_z}, {fisher_sig}).
+      Wealth alone does not break the cycle.</p>
     </div>
-    <div class="card">
-      <h3>Stronger in the Center</h3>
-      <p>Paradoxically, the center shows a <strong>stronger</strong> correlation (&rho; = {rho_center})
-      than the periphery (&rho; = {rho_periph}). Even in affluent areas, intergenerational
-      disability patterns persist, suggesting structural rather than purely economic causes.</p>
+    <div class="card" style="border-top:3px solid var(--color-1);">
+      <h3>What This Means for Policy</h3>
+      <p>The {n_high_risk} high-risk settlements have a median SES score of {ses_hr:.3f}
+      vs {ses_rest:.3f} in the rest &mdash; deep economic deprivation overlapping with
+      intergenerational disability. These communities need holistic
+      <strong>family-level</strong> interventions, not individual support alone.</p>
     </div>
   </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- Section 5: The Wall — Q1 + Q2 Converge on the Arab Sector -->
+<!-- Section 4: The Wall (CLIMAX — Arab R2 + integrated evidence) -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<div class="section" id="arabwall">
-  <h2 class="section-title">The Wall: Q1 + Q2 Converge on the Arab Sector</h2>
-  <p class="section-subtitle">Both under-utilization (Q1) and the intergenerational trap (Q2) point to the same place &mdash; {n_arab} Arab-majority settlements</p>
+<div class="section" id="wall">
+  <h2 class="section-title">Every Model We Tried Hit the Same Wall</h2>
+  <p class="section-subtitle">We tested Random Forest, XGBoost, TabPFN, and Linear Regression. All four models explain disability patterns well for most settlements &mdash; and fail for Arab communities.</p>
 
   <div class="big-number-card">
     <div class="big-val">~{arab_unexplained_pct}%</div>
@@ -1417,220 +1889,194 @@ html_output = f"""<!DOCTYPE html>
   </div>
 
   <div class="chart-card">
-    <div class="chart-title">Model R&sup2; by Population Sector &mdash; Best model R&sup2; = {arab_best_r2:.3f} for Arab vs {fmt_num(best_secular_r2, 3)} for Secular</div>
+    <div class="chart-title">Model R&sup2; by Population Sector</div>
+    <div class="chart-annotation">R&sup2; = {arab_best_r2:.3f} for Arab settlements vs {fmt_num(best_secular_r2, 3)} for Secular. The wall is consistent across all model architectures.</div>
     <div class="chart-wrap"><canvas id="chart_arab_r2"></canvas></div>
   </div>
 
-  <div class="card-grid">
-    <div class="card">
-      <h3>Q1 Signal: Under-Utilization Is Concentrated Here</h3>
-      <p>Of the {n_under} flagged settlements, <strong>{under_arab_pct}%</strong> are
-      Arab-majority. The model <em>predicts</em> high disability rates, but observed
-      claiming is far <em>below</em> prediction. Standard factors (income, education,
-      demographics) explain R&sup2; = {fmt_num(best_secular_r2, 3)} for secular settlements
-      but almost nothing for Arab ones.</p>
+  <div class="pull-quote">
+    &ldquo;It&rsquo;s Disgraceful Going through All this for Being an Arab and Disabled&rdquo;
+    <div class="pq-source">Alhuzeel et al. (2023) &mdash; <em>Scandinavian Journal of Disability Research</em>. Interviews with 15 Arab Israelis revealed multi-level barriers: language (Hebrew-only forms and committees), excessive bureaucracy (3 medical committees vs 1), lack of information about rights in Arabic, and cultural stigma within the community itself.</div>
+  </div>
+
+  <div class="pull-quote" style="border-left-color:var(--color-1);background:#eff6ff;color:var(--color-1);">
+    Arab self-reported disability prevalence: <strong>21%</strong> &mdash; Jewish: <strong>19%</strong>.
+    Yet benefit claiming is <em>lower</em>. 35% of approved beneficiaries never exercised eligibility.
+    <div class="pq-source" style="color:var(--text-secondary);">Brookdale Institute (2024) &mdash; People with Disabilities in the Arab Population</div>
+  </div>
+
+  <div class="card-grid" style="margin-top:var(--gap);grid-template-columns:1fr;">
+    <div class="card" style="border-top:3px solid var(--negative);">
+      <h3>We Removed the Arab Variable &mdash; Nothing Changed</h3>
+      <p>We re-ran the ensemble without <code>arab_population_percentage</code>.
+      The under-utilization list stayed <strong>identical</strong>.
+      The model doesn&rsquo;t need an &ldquo;Arab&rdquo; label &mdash; it reconstructs the group from
+      the remaining 14 indicators: low SES, low salary, zero Haredi&nbsp;%, specific peripherality
+      and education patterns. No single variable carries the signal; <strong>it is distributed
+      across the entire socio-economic profile</strong>.</p>
+      <p style="margin-top:8px;">This means the model <em>normalizes</em> the under-claiming pattern.
+      It learns &ldquo;settlements that look like this tend to claim less&rdquo; and adjusts its
+      prediction downward &mdash; turning systemic access barriers into a statistical baseline.
+      The discrimination is not in one column; it is woven into the structure of the data.</p>
     </div>
-    <div class="card">
-      <h3>Q2 Signal: The Intergenerational Pattern Is Present</h3>
-      <p>The child-adult disability correlation exists across all sectors,
-      but in Arab communities, the <strong>model residual</strong> is largest &mdash;
-      meaning the gap between predicted and actual is not random.
-      Something <strong>invisible to official statistics</strong> drives
-      the gap, and Q2 shows this pattern starts in childhood.
-      This convergence points to <strong>access barriers</strong>, not lower need.</p>
+  </div>
+
+  <div class="card-grid" style="margin-top:var(--gap);">
+    <div class="card" style="border-top:3px solid var(--color-5);">
+      <h3>This Has Happened Before</h3>
+      <p><strong>Obermeyer et al. (2019, Science)</strong>: A US healthcare algorithm trained on
+         200 million patients used <em>cost</em> as proxy for <em>need</em>. Because the system
+         spent less on Black patients with equivalent illness, the algorithm concluded they were healthier.</p>
+      <p style="margin-top:8px;">Our case is analogous: NII data records <em>benefit receipt</em> as
+         proxy for <em>disability prevalence</em>. In communities facing access barriers, fewer people
+         claim &mdash; creating the illusion of lower need.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--positive);">
+      <h3>Convergence of Evidence</h3>
+      <p>Our data, the qualitative research, and the international precedent all point to the same conclusion:</p>
+      <ul>
+        <li>The <strong>R&sup2; wall</strong> (~{arab_unexplained_pct}% unexplained) = unmeasured barriers</li>
+        <li>The <strong>under-utilization clusters</strong> ({under_arab_pct}% Arab-majority) = families not claiming despite need</li>
+        <li>The <strong>hidden burden clusters</strong> ({hidden_arab_pct}% Arab-majority) = mostly non-Arab; the Arab gap is about <em>access</em>, not <em>over-diagnosis</em></li>
+        <li>The <strong>intergenerational pattern</strong> = access failure starts in childhood</li>
+      </ul>
     </div>
   </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- Section 6: Swords of Iron (Q3) -->
+<!-- Section 5: Ruled Out (Q3 + Q4 combined) -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<div class="section" id="conflict">
-  <h2 class="section-title">The Rise Is Structural, Not Crisis-Driven</h2>
-  <p class="section-subtitle">Q3: Disability rates 2023-2025 &mdash; frontline vs non-frontline settlements</p>
+<div class="section" id="ruled-out">
+  <h2 class="section-title">It's Not the War. It's Not the Distance.</h2>
+  <p class="section-subtitle">Two alternative explanations tested and rejected: the Swords of Iron conflict and physical distance to NII branches.</p>
+
+  <!-- Subsection A: Q3 Swords of Iron -->
+  <h3 style="font-size:1.15rem;font-weight:600;margin:0 0 12px;"><span class="q-badge">Research Question 3</span> Did the Conflict Create a Disability Crisis?</h3>
 
   <div class="kpi-row">
     <div class="kpi-card">
-      <div class="kpi-value negative">{front_rate_2023}%</div>
-      <div class="kpi-label">Frontline 2023</div>
+      <div class="kpi-value problem">{front_delta_total:+.2f} pp</div>
+      <div class="kpi-label">Frontline Change (2023&rarr;2025)</div>
+      <div class="kpi-context">{front_rate_2023}% &rarr; {front_rate_2025}%</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-value negative">{front_rate_2025}%</div>
-      <div class="kpi-label">Frontline 2025</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-value">{nf_rate_2023}%</div>
-      <div class="kpi-label">Non-Frontline 2023</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-value">{nf_rate_2025}%</div>
-      <div class="kpi-label">Non-Frontline 2025</div>
+      <div class="kpi-value neutral">{nf_delta_total:+.2f} pp</div>
+      <div class="kpi-label">Non-Frontline Change (2023&rarr;2025)</div>
+      <div class="kpi-context">{nf_rate_2023}% &rarr; {nf_rate_2025}%</div>
     </div>
   </div>
 
   <div class="chart-card">
     <div class="chart-title">Disability Benefit Rate: Frontline ({n_frontline_panel} settlements) vs Non-Frontline ({n_nonfrontline_panel} settlements)</div>
+    <div class="chart-annotation">Rates rose everywhere, not just in conflict zones. The trend is structural, not crisis-driven.</div>
     <div class="chart-wrap"><canvas id="chart_temporal"></canvas></div>
   </div>
 
   <div class="insight-callout">
-    <strong>Key finding:</strong> Disability rates rose <strong>everywhere</strong>, not just in
-    frontline zones. Frontline: {front_rate_2023}% &rarr; {front_rate_2025}%
-    (&Delta; = {front_delta_total:+.2f} pp). Non-frontline: {nf_rate_2023}% &rarr; {nf_rate_2025}%
-    (&Delta; = {nf_delta_total:+.2f} pp). The conflict did not create a new disability spike &mdash;
-    it <strong>amplified existing vulnerabilities</strong>.
+    <strong>Conclusion:</strong> Disability rates rose <strong>everywhere</strong>, not just in
+    frontline zones. The conflict did not create a new disability spike &mdash;
+    it amplified existing vulnerabilities.
   </div>
-</div>
 
-<!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- Section 7: Distance Experiment (Q4) -->
-<!-- ════════════════════════════════════════════════════════════════════════ -->
-<div class="section" id="distance">
-  <h2 class="section-title">Physical Distance Is Not the Barrier</h2>
-  <p class="section-subtitle">Q4: Distance to NII branches vs disability rate &mdash; SES slope = {trend_data['slope_ses']:+.2f}, Distance slope = {trend_data['slope_dist']:+.2f}</p>
+  <!-- Subsection B: Q4 Distance -->
+  <h3 style="font-size:1.15rem;font-weight:600;margin:24px 0 12px;"><span class="q-badge">Research Question 4</span> Is Physical Distance the Barrier?</h3>
 
   <div class="chart-card">
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:4px;flex-wrap:wrap;">
       <div class="chart-title" id="dist_chart_title" style="margin-bottom:0;">Disability Rate vs Distance to Nearest NII Branch (km)</div>
       <select id="dist_type_select" onchange="updateDistanceChart()" style="padding:6px 12px;border-radius:6px;border:1px solid #dee2e6;font-size:0.85rem;background:#fff;cursor:pointer;">
         <option value="dist_any">Any BTL Branch</option>
         <option value="dist_central">Central Branch</option>
       </select>
     </div>
+    <div class="chart-annotation">Each dot is a settlement. No visible trend &mdash; distance does not predict disability claiming.</div>
     <div class="chart-wrap tall"><canvas id="chart_distance_scatter"></canvas></div>
   </div>
 
   <div class="chart-card">
-    <div class="chart-title">Comparing Predictors on Same Scale: Socio-Economic Status (slope {trend_data['slope_ses']:+.2f}) vs Distance (slope {trend_data['slope_dist']:+.2f})</div>
+    <div class="chart-title">Same Scale Comparison: SES (slope {trend_data['slope_ses']:+.2f}) vs Distance (slope {trend_data['slope_dist']:+.2f})</div>
+    <div class="chart-annotation">SES is a strong predictor; distance is nearly flat.</div>
     <div class="chart-wrap"><canvas id="chart_trend_lines"></canvas></div>
   </div>
 
-  <div class="card-grid">
-    <div class="card">
-      <h3>What the Charts Show</h3>
-      <p><strong>Top chart:</strong> each dot is a settlement. No visible trend &mdash;
-      settlements far from NII branches have the same disability rates as those nearby.</p>
-      <p style="margin-top:8px;"><strong>Bottom chart:</strong> two predictors on the same
-      normalized scale. Socio-economic status has a strong slope ({trend_data['slope_ses']:+.2f}),
-      while distance is nearly flat ({trend_data['slope_dist']:+.2f}).</p>
-    </div>
-    <div class="card">
-      <h3>The Remaining Candidates</h3>
-      <p>If not physical distance, then what?</p>
-      <ul>
-        <li><strong>Informational:</strong> people don't know they're eligible</li>
-        <li><strong>Linguistic:</strong> forms and committees operate in Hebrew</li>
-        <li><strong>Cultural:</strong> stigma prevents claiming</li>
-        <li><strong>Institutional:</strong> the process itself deters applicants</li>
-      </ul>
-    </div>
+  <div class="insight-callout">
+    <strong>Conclusion:</strong> Physical distance to NII branches explains almost nothing.
+    The barrier is not geographic &mdash; it is informational, linguistic, cultural, and institutional.
   </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- Section 8: Evidence -->
+<!-- Section 6: What Drives Disability -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<div class="section" id="evidence">
-  <h2 class="section-title">Israeli Research Confirms What Our Models Show</h2>
-  <p class="section-subtitle">Two independent 2024 studies validate the access-barrier hypothesis</p>
+<div class="section" id="drivers">
+  <h2 class="section-title">Income Support Is the Strongest Driver of Disability Rates</h2>
+  <p class="section-subtitle">Knowing what drives disability tells us what to target. Two complementary views: Linear Regression shows direction (increases vs decreases), tree models show magnitude.</p>
 
   <div class="card-grid">
-    <div class="card" style="border-top:3px solid var(--color-4);">
-      <h3>Alhuzeel et al. (2024) &mdash; <em>Scandinavian J. of Disability Research</em></h3>
-      <p style="font-style:italic;color:var(--color-4);font-weight:600;margin-bottom:8px;">
-        &ldquo;It&rsquo;s Disgraceful Going through All this for Being an Arab and Disabled&rdquo;</p>
-      <p>Interviews with 15 Arab Israelis with disabilities revealed barriers at every level:</p>
-      <ul>
-        <li><strong>Family:</strong> disability perceived as shameful; families avoid state services
-            to prevent reduced marriage prospects</li>
-        <li><strong>Institution:</strong> NII perceived as the <strong>most discriminatory</strong>
-            government body. Medical committees lack Arabic-speaking staff</li>
-        <li><strong>Society:</strong> &ldquo;the invisible of the invisible&rdquo; &mdash;
-            Arab disabled people face compounded marginalization</li>
-      </ul>
+    <div class="chart-card">
+      <div class="chart-title">Linear Regression: Which Factors Increase or Decrease Disability?</div>
+      <div class="chart-annotation"><strong style="color:#C44E52;">Red bars</strong> = factor increases disability rate. <strong style="color:#4C72B0;">Blue bars</strong> = factor decreases it. Income support is the strongest positive driver; salary is the strongest negative. R&sup2; = {ols_cv_r2}.</div>
+      <div class="chart-wrap hbar"><canvas id="chart_ols_coeff"></canvas></div>
     </div>
-    <div class="card" style="border-top:3px solid var(--color-1);">
-      <h3>Brookdale Institute (2024) &mdash; People with Disabilities in the Arab Population</h3>
-      <p>Arab self-reported disability prevalence is <strong>higher</strong> than Jewish
-         &mdash; <strong style="color:var(--negative);">21% vs.&nbsp;19%</strong> &mdash; yet
-         benefit claiming is <strong>lower</strong>.</p>
-      <p style="margin-top:8px;">Arab people with disabilities face
-         <strong>&ldquo;double exclusion&rdquo;</strong>. Women face
-         <strong>&ldquo;triple exclusion&rdquo;</strong> (minority + disability + gender).</p>
-      <p style="margin-top:8px;"><strong>35%</strong> of people already approved for
-         benefits never exercised eligibility (Brookdale, 2022).
-         <strong>23%</strong> were simply unaware of the approval.</p>
+    <div class="chart-card">
+      <div class="chart-title">Tree Models: Which Factors Matter Most?</div>
+      <div class="chart-annotation">Importance regardless of direction. Averaged across Random Forest + XGBoost. Best ensemble R&sup2; = {best_r2_val}.</div>
+      <div class="chart-wrap hbar"><canvas id="chart_importance"></canvas></div>
     </div>
   </div>
 
-  <div class="card-grid" style="margin-top:var(--gap);">
-    <div class="card" style="border-top:3px solid var(--color-5);">
-      <h3>The Science Parallel: Obermeyer et al. (2019)</h3>
-      <p><strong>Science, 366(6464)</strong>: A US healthcare algorithm trained on
-         200&nbsp;million patients used <em>cost</em> as proxy for <em>need</em>.
-         Because the system spent less on Black patients with equivalent illness,
-         the algorithm concluded they were healthier.</p>
-      <p style="margin-top:8px;"><strong>Our case is analogous:</strong> NII data records
-         <em>benefit receipt</em> as proxy for <em>disability prevalence</em>. In communities
-         facing access barriers, fewer people claim &mdash; creating the illusion of lower need.
-         Our R&sup2; wall for Arab settlements ({arab_best_r2:.2f}) is statistical evidence of
-         this same pattern.</p>
-    </div>
-    <div class="card" style="border-top:3px solid var(--color-3);">
-      <h3>Convergence of Evidence</h3>
-      <p>Our data-driven finding &mdash; that standard models fail for Arab settlements
-         &mdash; aligns precisely with the qualitative research:</p>
-      <ul>
-        <li>The <strong>R&sup2; wall</strong> (models explain ~{arab_unexplained_pct}% less for Arab settlements) =
-            unmeasured barriers</li>
-        <li>The <strong>under-utilization clusters</strong> ({under_arab_pct}% are Arab-majority) =
-            families not claiming despite need</li>
-        <li>The <strong>distance non-effect</strong> (slope {trend_data['slope_dist']:+.2f}) =
-            the barrier is not physical but informational, linguistic, and institutional</li>
-      </ul>
-    </div>
+  <div class="insight-callout">
+    <strong>Both methods agree:</strong> income support rate, salary, and Arab population percentage are the top factors.
+    Linear Regression tells us the <em>direction</em> (what to increase, what to decrease).
+    Tree models tell us the <em>importance</em> (where to focus resources first).
+    Together, they point directly to the actions in the next section.
   </div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- Section 9: Recommendations -->
+<!-- Section 7: Action Plan -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<div class="section" id="recommendations">
-  <h2 class="section-title">Recommendations</h2>
-  <p class="section-subtitle">Evidence-based actions to close the disability benefit access gap</p>
+<div class="section" id="action">
+  <h2 class="section-title">Five Actions to Close the Gap</h2>
+  <p class="section-subtitle">Each recommendation is tied to specific findings from this research.</p>
 
   <div class="rec-grid">
     <div class="rec-card">
       <div class="rec-num">1</div>
-      <h4>Targeted Outreach</h4>
-      <p>The {n_under} flagged settlements should receive proactive information
+      <h4>Targeted Outreach in {n_under} Flagged Settlements</h4>
+      <p><strong>From Q1:</strong> the {n_under} flagged settlements should receive proactive information
       campaigns &mdash; in Arabic, with community-based intermediaries and local
-      advocacy organizations.</p>
+      advocacy organizations. {under_arab_pct}% are Arab-majority.</p>
     </div>
     <div class="rec-card">
       <div class="rec-num">2</div>
       <h4>Simplify the Process</h4>
-      <p>Bhargava &amp; Manoli (2015): simplifying benefit language increased claiming
-      by 6-8 pp. Show estimated benefit amounts, use plain language, reduce paperwork.</p>
+      <p><strong>From The Wall:</strong> Bhargava &amp; Manoli (2015) showed simplifying benefit language
+      increased claiming by 6-8 pp. Show estimated benefit amounts, use plain language, reduce paperwork.
+      35% of approved beneficiaries never exercised eligibility.</p>
     </div>
     <div class="rec-card">
       <div class="rec-num">3</div>
-      <h4>Arabic-Language Services</h4>
-      <p>Ensure NII medical committees include Arabic-speaking professionals.
+      <h4>Arabic-Language Services at NII</h4>
+      <p><strong>From The Wall:</strong> Alhuzeel (2023) identified multi-level barriers —
+      Hebrew-only forms, excessive bureaucracy, and lack of Arabic-language information about rights.
+      Ensure medical committees include Arabic-speaking professionals.
       Provide all forms, notifications, and digital services in Arabic.</p>
     </div>
     <div class="rec-card">
       <div class="rec-num">4</div>
       <h4>Break the Intergenerational Cycle</h4>
-      <p>Settlements flagged for both child and adult disability (Q2) need
-      integrated family-level interventions, not separate programs.</p>
+      <p><strong>From Q2:</strong> settlements flagged for both child and adult disability (&rho; = {rho_overall})
+      need integrated family-level interventions, not separate programs.
+      The pattern persists even in affluent areas (&rho; = {rho_center} in the center).</p>
     </div>
     <div class="rec-card">
       <div class="rec-num">5</div>
-      <h4>Annual Monitoring</h4>
-      <p>Re-run the model annually. Settlements with persistent positive gaps
+      <h4>Annual Monitoring Dashboard</h4>
+      <p><strong>From Q3:</strong> re-run the model annually. Settlements with persistent positive gaps
       across multiple years should be prioritized for field investigation.
-      Track frontline communities for post-conflict effects.</p>
+      Track frontline communities ({n_frontline_panel} settlements) for post-conflict effects.</p>
     </div>
   </div>
 
@@ -1639,9 +2085,8 @@ html_output = f"""<!DOCTYPE html>
     under-utilization in Israel is concentrated, intergenerational, structural,
     and invisible to standard data. Our models explain ~{round(best_r2_val * 100)}%
     of the variation overall (R&sup2; = {best_r2_val}) but hit a wall for Arab
-    settlements (R&sup2; = {arab_best_r2:.2f}). This is evidence that the factors
-    driving the gap &mdash; language barriers, institutional friction, and systemic
-    under-investment &mdash; are invisible to official statistics.
+    settlements (R&sup2; = {arab_best_r2:.2f}). The barriers are not in the data &mdash;
+    they are linguistic, institutional, and cultural.
   </div>
 </div>
 
@@ -1663,15 +2108,15 @@ const olsMinVal = {round(ols_min_val, 2)};
 const olsMaxVal = {round(ols_max_val, 2)};
 const olsThreshold = {round(ols_threshold, 4)};
 const interScatterData = {json.dumps(inter_scatter_data)};
+const hrBoxplotData = {json.dumps(hr_boxplot_data)};
 const arabChartData = {json.dumps(arab_chart_data)};
 const temporalChartData = {json.dumps(temporal_chart_data)};
 const distScatterData = {json.dumps(dist_scatter_data)};
 const trendData = {json.dumps(trend_data)};
 const gapScatterData = {json.dumps(gap_scatter_data)};
-
 // ── Tooltip defaults ──
 Chart.defaults.font.family = "'Inter', sans-serif";
-Chart.defaults.font.size = 12;
+Chart.defaults.font.size = 13;
 Chart.defaults.plugins.tooltip.backgroundColor = "rgba(33,37,41,0.92)";
 Chart.defaults.plugins.tooltip.titleFont = {{ weight: "600" }};
 Chart.defaults.plugins.tooltip.bodyFont = {{ size: 12 }};
@@ -1760,20 +2205,19 @@ new Chart(document.getElementById("chart_importance"), {{
   }}
 }});
 
-// ── 2b. Ensemble Gap Scatter (Actual vs Expected, 4 segments) ──
+// ── 2b. Ensemble Gap Scatter (Expected vs Actual, ±1.5σ residual) ──
 (function() {{
   const segCfg = {{
-    "Both Lower":                {{ color: "rgba(148,163,184,0.4)", border: "#94A3B8", radius: 5, style: "circle" }},
-    "Both High":                 {{ color: "rgba(129,140,248,0.5)", border: "#818CF8", radius: 6, style: "circle" }},
-    "Potential Under-utilization":{{ color: "rgba(245,158,11,0.85)", border: "#F59E0B", radius: 9, style: "rectRot" }},
-    "Hidden Burden":             {{ color: "rgba(244,63,94,0.85)",  border: "#F43F5E",  radius: 9, style: "crossRot" }}
+    "Normal":                    {{ color: "rgba(76,114,176,0.5)",   border: "#4C72B0", radius: 5, style: "circle" }},
+    "Potential Under-utilization":{{ color: "rgba(85,168,104,0.85)", border: "#55A868", radius: 9, style: "rectRot" }},
+    "Hidden Burden":             {{ color: "rgba(196,78,82,0.85)",   border: "#C44E52", radius: 9, style: "crossRot" }}
   }};
-  const order = ["Both Lower", "Both High", "Potential Under-utilization", "Hidden Burden"];
+  const order = ["Normal", "Potential Under-utilization", "Hidden Burden"];
   const datasets = order.filter(seg => gapScatterData[seg] && gapScatterData[seg].x.length > 0).map(seg => {{
     const d = gapScatterData[seg];
     const cfg = segCfg[seg];
     return {{
-      label: seg,
+      label: seg + " (" + d.x.length + ")",
       data: d.x.map((xv, i) => ({{ x: xv, y: d.y[i], name: d.names[i], gap: d.gap[i] }})),
       backgroundColor: cfg.color,
       borderColor: cfg.border,
@@ -1788,24 +2232,40 @@ new Chart(document.getElementById("chart_importance"), {{
   const allY = order.flatMap(s => gapScatterData[s] ? gapScatterData[s].y : []);
   const diagMin = Math.min(...allX, ...allY);
   const diagMax = Math.max(...allX, ...allY);
+  const gapThreshold = {round(gap_threshold, 2)};
 
   const gapDiagonalPlugin = {{
     id: "gapDiagonal",
     afterDraw(chart) {{
       const {{ ctx, scales: {{ x: xScale, y: yScale }} }} = chart;
       ctx.save();
+      // Main diagonal (perfect prediction)
       ctx.beginPath();
       ctx.setLineDash([6, 4]);
-      ctx.strokeStyle = "rgba(244, 63, 94, 0.5)";
+      ctx.strokeStyle = "rgba(0,0,0,0.3)";
       ctx.lineWidth = 1.5;
       ctx.moveTo(xScale.getPixelForValue(diagMin), yScale.getPixelForValue(diagMin));
       ctx.lineTo(xScale.getPixelForValue(diagMax), yScale.getPixelForValue(diagMax));
+      ctx.stroke();
+      // Upper threshold (hidden burden zone: actual >> expected)
+      ctx.beginPath();
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = "rgba(196,78,82,0.3)";
+      ctx.lineWidth = 1;
+      ctx.moveTo(xScale.getPixelForValue(diagMin), yScale.getPixelForValue(diagMin + gapThreshold));
+      ctx.lineTo(xScale.getPixelForValue(diagMax), yScale.getPixelForValue(diagMax + gapThreshold));
+      ctx.stroke();
+      // Lower threshold (under-utilization zone: actual << expected)
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(85,168,104,0.3)";
+      ctx.moveTo(xScale.getPixelForValue(diagMin), yScale.getPixelForValue(diagMin - gapThreshold));
+      ctx.lineTo(xScale.getPixelForValue(diagMax), yScale.getPixelForValue(diagMax - gapThreshold));
       ctx.stroke();
       ctx.restore();
     }}
   }};
 
-  new Chart(document.getElementById("chart_gap_scatter"), {{
+  window.__ensembleChart = new Chart(document.getElementById("chart_gap_scatter"), {{
     type: "scatter",
     data: {{ datasets }},
     options: {{
@@ -1822,8 +2282,8 @@ new Chart(document.getElementById("chart_importance"), {{
               const pt = ctx.raw;
               return [
                 pt.name || "",
-                "Actual: " + pt.x.toFixed(2) + "%",
-                "Expected: " + pt.y.toFixed(2) + "%",
+                "Expected: " + pt.x.toFixed(2) + "%",
+                "Actual: " + pt.y.toFixed(2) + "%",
                 "Gap: " + (pt.gap >= 0 ? "+" : "") + pt.gap.toFixed(2) + " pp"
               ];
             }}
@@ -1832,11 +2292,11 @@ new Chart(document.getElementById("chart_importance"), {{
       }},
       scales: {{
         x: {{
-          title: {{ display: true, text: "Actual Rate (%)", font: {{ weight: "600" }} }},
+          title: {{ display: true, text: "Expected Rate (%)", font: {{ weight: "600" }} }},
           grid: {{ color: "rgba(0,0,0,0.06)" }}
         }},
         y: {{
-          title: {{ display: true, text: "Expected Rate (%)", font: {{ weight: "600" }} }},
+          title: {{ display: true, text: "Actual Rate (%)", font: {{ weight: "600" }} }},
           grid: {{ color: "rgba(0,0,0,0.06)" }}
         }}
       }}
@@ -1906,7 +2366,7 @@ new Chart(document.getElementById("chart_importance"), {{
     }}
   }};
 
-  new Chart(document.getElementById("chart_anomaly_scatter"), {{
+  window.__olsChart = new Chart(document.getElementById("chart_anomaly_scatter"), {{
     type: "scatter",
     data: {{ datasets }},
     options: {{
@@ -1946,49 +2406,152 @@ new Chart(document.getElementById("chart_importance"), {{
   }});
 }})();
 
-// ── 4. Intergenerational Scatter ──
+// ── 4. Intergenerational Dual-Panel Scatter ──
 (function() {{
-  const datasets = interScatterData.groups.map(g => ({{
-    label: g.name,
-    data: g.child_rate.map((c, i) => ({{ x: c, y: g.adult_rate[i], name: g.names[i] }})),
-    backgroundColor: g.color,
-    borderColor: g.color,
-    pointRadius: 5,
-    pointHoverRadius: 8
-  }}));
+  // SES-based color: red (1) → yellow (5) → green (10)
+  function sesColor(cluster) {{
+    const colors = [
+      "#d73027","#f46d43","#fdae61","#fee08b","#ffffbf",
+      "#d9ef8b","#a6d96a","#66bd63","#1a9850","#006837"
+    ];
+    const idx = Math.max(0, Math.min(9, (cluster || 5) - 1));
+    return colors[idx];
+  }}
 
-  new Chart(document.getElementById("chart_intergenerational"), {{
-    type: "scatter",
-    data: {{ datasets }},
+  const canvasIds = ["chart_inter_periph", "chart_inter_nonperiph"];
+  interScatterData.groups.forEach((g, gIdx) => {{
+    // Scatter points colored by SES
+    const points = g.child_rate.map((c, i) => ({{
+      x: c, y: g.adult_rate[i], name: g.names[i], ses: g.ses_cluster[i]
+    }}));
+    const bgColors = points.map(p => sesColor(p.ses));
+
+    const datasets = [{{
+      label: g.name + " (N=" + g.n + ", r=" + g.r + ")",
+      data: points,
+      backgroundColor: bgColors,
+      borderColor: bgColors.map(c => c),
+      pointRadius: 5,
+      pointHoverRadius: 8,
+      order: 2
+    }}];
+
+    // Add OLS trend line
+    if (g.trend) {{
+      datasets.push({{
+        label: "OLS (slope=" + g.trend.slope + ")",
+        data: [{{ x: g.trend.x0, y: g.trend.y0 }}, {{ x: g.trend.x1, y: g.trend.y1 }}],
+        type: "line",
+        borderColor: "rgba(0,0,0,0.6)",
+        borderWidth: 2,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        fill: false,
+        order: 1
+      }});
+    }}
+
+    new Chart(document.getElementById(canvasIds[gIdx]), {{
+      type: "scatter",
+      data: {{ datasets }},
+      options: {{
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {{
+          legend: {{ position: "top", labels: {{ padding: 10, font: {{ size: 11 }} }} }},
+          tooltip: {{
+            callbacks: {{
+              label: ctx => {{
+                const pt = ctx.raw;
+                if (!pt.name) return "";
+                return [
+                  pt.name,
+                  "Child rate: " + pt.x.toFixed(2) + "%",
+                  "Adult rate: " + pt.y.toFixed(2) + "%",
+                  "SES cluster: " + (pt.ses || "?")
+                ];
+              }}
+            }}
+          }}
+        }},
+        scales: {{
+          x: {{
+            title: {{ display: true, text: "Child Disability Rate (%)", font: {{ size: 11, weight: "600" }} }},
+            grid: {{ color: "rgba(0,0,0,0.06)" }}
+          }},
+          y: {{
+            title: {{ display: true, text: "Adult Disability Rate (%)", font: {{ size: 11, weight: "600" }} }},
+            grid: {{ color: "rgba(0,0,0,0.06)" }}
+          }}
+        }}
+      }}
+    }});
+  }});
+}})();
+
+// ── 4b. High-Risk Cluster Boxplot (median comparison) ──
+(function() {{
+  function median(arr) {{
+    if (!arr.length) return 0;
+    const s = arr.slice().sort((a,b) => a - b);
+    const mid = Math.floor(s.length / 2);
+    return s.length % 2 ? s[mid] : (s[mid-1] + s[mid]) / 2;
+  }}
+  const labels = hrBoxplotData.indicators;
+  const hrMedians = hrBoxplotData.high_risk.map(median);
+  const restMedians = hrBoxplotData.rest.map(median);
+  const hrNorm = hrMedians.map((v, i) => restMedians[i] !== 0 ? Math.round(v / restMedians[i] * 100) : 0);
+  const restNorm = restMedians.map(() => 100);
+
+  new Chart(document.getElementById("chart_hr_boxplot"), {{
+    type: "bar",
+    data: {{
+      labels: labels,
+      datasets: [
+        {{
+          label: "Rest of Settlements (= 100%)",
+          data: restNorm,
+          backgroundColor: "rgba(76,114,176,0.7)",
+          borderRadius: 4,
+          barPercentage: 0.75,
+          categoryPercentage: 0.65
+        }},
+        {{
+          label: "High-Risk Cluster",
+          data: hrNorm,
+          backgroundColor: "rgba(244,63,94,0.75)",
+          borderRadius: 4,
+          barPercentage: 0.75,
+          categoryPercentage: 0.65
+        }}
+      ]
+    }},
     options: {{
       responsive: true,
       maintainAspectRatio: false,
+      indexAxis: "y",
       plugins: {{
-        legend: {{
-          position: "top",
-          labels: {{ usePointStyle: true, padding: 16 }}
-        }},
+        legend: {{ position: "top", labels: {{ padding: 14 }} }},
         tooltip: {{
           callbacks: {{
             label: ctx => {{
-              const pt = ctx.raw;
-              return [
-                pt.name || "",
-                "Child rate: " + pt.x.toFixed(2) + "%",
-                "Adult rate: " + pt.y.toFixed(2) + "%"
-              ];
+              const idx = ctx.dataIndex;
+              const isHR = ctx.datasetIndex === 1;
+              const raw = isHR ? hrMedians[idx] : restMedians[idx];
+              return ctx.dataset.label + ": " + raw.toFixed(1) + " (" + ctx.parsed.x + "% of baseline)";
             }}
           }}
         }}
       }},
       scales: {{
         x: {{
-          title: {{ display: true, text: "Child Disability Rate (%)", font: {{ weight: "600" }} }},
-          grid: {{ color: "rgba(0,0,0,0.06)" }}
+          title: {{ display: true, text: "% of Rest-of-Settlements Median", font: {{ weight: "600" }} }},
+          grid: {{ color: "rgba(0,0,0,0.06)" }},
+          suggestedMin: 0,
+          suggestedMax: 200
         }},
         y: {{
-          title: {{ display: true, text: "Adult Disability Rate (%)", font: {{ weight: "600" }} }},
-          grid: {{ color: "rgba(0,0,0,0.06)" }}
+          grid: {{ display: false }}
         }}
       }}
     }}
@@ -2286,6 +2849,172 @@ function sortTable(tableId, colIdx) {{
 
   sections.forEach(s => observer.observe(s));
 }})();
+
+// ── Settlement Search ──
+(function() {{
+  function setupSearch(inputId, resultId, chart) {{
+    const input = document.getElementById(inputId);
+    const result = document.getElementById(resultId);
+    if (!input || !chart) return;
+
+    // Collect all points with names
+    const allPoints = [];
+    chart.data.datasets.forEach((ds, dsIdx) => {{
+      ds.data.forEach((pt, ptIdx) => {{
+        if (pt.name) allPoints.push({{ dsIdx, ptIdx, name: pt.name, pt }});
+      }});
+    }});
+
+    // Store original radii
+    const origRadii = chart.data.datasets.map(ds => ds.pointRadius);
+    const origBg = chart.data.datasets.map(ds =>
+      Array.isArray(ds.backgroundColor) ? [...ds.backgroundColor] : ds.backgroundColor
+    );
+
+    input.addEventListener("input", function() {{
+      const q = this.value.trim().toLowerCase();
+      if (!q) {{
+        // Reset
+        chart.data.datasets.forEach((ds, i) => {{
+          ds.pointRadius = origRadii[i];
+          ds.backgroundColor = origBg[i];
+        }});
+        result.textContent = "";
+        chart.update("none");
+        return;
+      }}
+
+      const matches = allPoints.filter(p => p.name.toLowerCase().includes(q));
+
+      // Dim all points
+      chart.data.datasets.forEach((ds, i) => {{
+        if (typeof origRadii[i] === "number") {{
+          ds.pointRadius = origRadii[i];
+        }}
+      }});
+
+      // Build highlight set
+      const highlightSet = new Set(matches.map(m => m.dsIdx + ":" + m.ptIdx));
+
+      chart.data.datasets.forEach((ds, dsIdx) => {{
+        const newBg = [];
+        const newRadius = [];
+        ds.data.forEach((pt, ptIdx) => {{
+          const key = dsIdx + ":" + ptIdx;
+          if (highlightSet.has(key)) {{
+            newBg.push("#FF0000");
+            newRadius.push(14);
+          }} else {{
+            const orig = Array.isArray(origBg[dsIdx]) ? origBg[dsIdx][ptIdx] : origBg[dsIdx];
+            newBg.push(typeof orig === "string" ? orig.replace(/[\d.]+\)$/, "0.15)") : "rgba(150,150,150,0.15)");
+            newRadius.push(typeof origRadii[dsIdx] === "number" ? origRadii[dsIdx] : 4);
+          }}
+        }});
+        ds.backgroundColor = newBg;
+        ds.pointRadius = newRadius;
+      }});
+
+      if (matches.length === 1) {{
+        const m = matches[0];
+        const p = m.pt;
+        const info = p.gap !== undefined
+          ? m.name + ": expected=" + p.x.toFixed(1) + "%, actual=" + p.y.toFixed(1) + "%, gap=" + (p.gap >= 0 ? "+" : "") + p.gap.toFixed(1)
+          : p.res !== undefined
+            ? m.name + ": predicted=" + p.x.toFixed(1) + "%, actual=" + p.y.toFixed(1) + "%, residual=" + (p.res >= 0 ? "+" : "") + p.res.toFixed(1)
+            : m.name;
+        result.textContent = info;
+      }} else if (matches.length > 1) {{
+        result.textContent = matches.length + " matches: " + matches.slice(0, 3).map(m => m.name).join(", ") + (matches.length > 3 ? "..." : "");
+      }} else {{
+        result.textContent = "No matches";
+      }}
+
+      chart.update("none");
+    }});
+  }}
+
+  // Wait a tick for charts to be ready
+  setTimeout(function() {{
+    setupSearch("search_ensemble", "search_ensemble_result", window.__ensembleChart);
+    setupSearch("search_ols", "search_ols_result", window.__olsChart);
+  }}, 100);
+}})();
+
+// ── Explorer table search & filter ──
+(function() {{
+  const search = document.getElementById("table_search");
+  const filterGroup = document.getElementById("table_filter_group");
+  const filterStatus = document.getElementById("table_filter_status");
+  const table = document.getElementById("explorer_table");
+  if (!search || !table) return;
+  const rows = Array.from(table.querySelectorAll("tbody tr"));
+
+  const countEl = document.getElementById("table_count");
+  const thPred = document.getElementById("th_pred");
+  const thGap = document.getElementById("th_gap");
+
+  function applyFilters() {{
+    const q = search.value.trim().toLowerCase();
+    const grp = filterGroup.value;
+    const stat = filterStatus.value;
+    const isOls = stat.startsWith("ols-");
+    let visible = 0;
+
+    // Switch column headers based on method
+    if (thPred) thPred.innerHTML = isOls
+      ? 'Expected (OLS) <span class="sort-arrow">&#9650;&#9660;</span>'
+      : 'Expected (Ensemble) <span class="sort-arrow">&#9650;&#9660;</span>';
+    if (thGap) thGap.innerHTML = isOls
+      ? 'Gap (OLS) <span class="sort-arrow">&#9650;&#9660;</span>'
+      : 'Gap (Ensemble) <span class="sort-arrow">&#9650;&#9660;</span>';
+
+    rows.forEach(tr => {{
+      const cells = tr.querySelectorAll("td");
+      const name = (cells[0] || {{}}).textContent.toLowerCase();
+      const group = (cells[5] || {{}}).textContent.trim();
+      const ensStatus = (cells[6] || {{}}).innerHTML;
+      const olsStatus = (cells[7] || {{}}).innerHTML;
+
+      // Switch displayed values based on method
+      const predCell = cells[2];
+      const gapCell = cells[3];
+      if (isOls) {{
+        const olsPred = tr.dataset.olsPred;
+        const olsGap = tr.dataset.olsGap;
+        if (predCell && olsPred) predCell.textContent = olsPred + "%";
+        if (gapCell && olsGap) {{
+          gapCell.textContent = olsGap;
+          gapCell.style.color = parseFloat(olsGap) > 0 ? "#55A868" : "#C44E52";
+        }}
+      }} else {{
+        const ensPred = tr.dataset.ensPred;
+        const ensGap = tr.dataset.ensGap;
+        if (predCell && ensPred) predCell.textContent = ensPred + "%";
+        if (gapCell && ensGap) {{
+          gapCell.textContent = ensGap;
+          gapCell.style.color = parseFloat(ensGap) > 0 ? "#55A868" : "#C44E52";
+        }}
+      }}
+
+      let show = true;
+      if (q && !name.includes(q)) show = false;
+      if (grp && group !== grp) show = false;
+      if (stat === "ens-under" && !ensStatus.includes("Under-util")) show = false;
+      if (stat === "ens-hidden" && !ensStatus.includes("Hidden")) show = false;
+      if (stat === "ols-under" && !olsStatus.includes("Under-util")) show = false;
+      if (stat === "ols-hidden" && !olsStatus.includes("Hidden")) show = false;
+      if (stat === "any-flag" && !ensStatus.includes("Under-util") && !ensStatus.includes("Hidden") && !olsStatus.includes("Under-util") && !olsStatus.includes("Hidden")) show = false;
+      tr.style.display = show ? "" : "none";
+      if (show) visible++;
+    }});
+    if (countEl) countEl.textContent = visible + " of " + rows.length + " settlements";
+  }}
+  applyFilters();
+
+  search.addEventListener("input", applyFilters);
+  filterGroup.addEventListener("change", applyFilters);
+  filterStatus.addEventListener("change", applyFilters);
+}})();
 </script>
 
 </body>
@@ -2294,7 +3023,7 @@ function sortTable(tableId, colIdx) {{
 
 # ── Write output ──────────────────────────────────────────────────────────────
 
-out_path = PROJECT_ROOT / "presentation_experimental.html"
+out_path = PROJECT_ROOT / "presentation_phase2.html"
 out_path.write_text(html_output, encoding="utf-8")
 print(f"\nDone! Written to {out_path}")
 print(f"  File size: {out_path.stat().st_size / 1024:.0f} KB")

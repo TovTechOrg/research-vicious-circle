@@ -16,11 +16,19 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Temp / scratch notebooks
+# Temp / scratch
 test.ipynb
 tmpclaude-*
 *.tmp
 ~$*.xlsx
+~$*.docx
+nul
+
+# Generated artifacts (untracked)
+figures/
+model/
+notebooks/
+docs/
 
 # Project config (private)
 CLAUDE.md

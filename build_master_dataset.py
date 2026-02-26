@@ -528,6 +528,12 @@ def add_derived_features(df: pd.DataFrame) -> pd.DataFrame:
     if "population_0_17" in df.columns and "disabled_child_benefit" in df.columns:
         df["disabled_child_benefit_rate"] = _safe_rate_per_100(df["disabled_child_benefit"], df["population_0_17"])
 
+    # --- Age-group percentages ---
+    if "population_65_plus" in df.columns and "total_population" in df.columns:
+        df["age65_pct"] = _safe_rate_per_100(df["population_65_plus"], df["total_population"])
+    if "population_0_17" in df.columns and "total_population" in df.columns:
+        df["age0_17_pct"] = _safe_rate_per_100(df["population_0_17"], df["total_population"])
+
     # --- Salary imputation (cluster-median) ---
     if "average_monthly_salary_2023" in df.columns and "socio_economic_index_cluster" in df.columns:
         df["average_monthly_salary_2023_was_imputed"] = df["average_monthly_salary_2023"].isna()

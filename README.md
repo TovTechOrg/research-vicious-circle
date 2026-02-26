@@ -11,7 +11,7 @@ This project explores correlations between poverty indicators and health/disabil
 | Phase | Focus | Slides |
 |-------|-------|--------|
 | **[Phase 1](https://tovtechorg.github.io/research-vicious-circle/presentation_main.html)** | SE vulnerability ↔ disability correlation | 12 |
-| **[Phase 2](https://tovtechorg.github.io/research-vicious-circle/presentation_executive.html)** | 4 research questions, ML models, 7 interactive charts | 9 |
+| **[Phase 2](https://tovtechorg.github.io/research-vicious-circle/presentation_phase2.html)** | 4 research questions, Ensemble + OLS, interactive explorer | 9 |
 
 ## What We Found (Phase 1)
 
@@ -84,7 +84,7 @@ Both indices are normalized to **[-1, +1]** (Distress → Resilience).
 │
 ├── index.html                        ← GitHub Pages landing page
 ├── presentation_main.html            ← Phase 1 output (12 slides)
-├── presentation_phase2.html          ← Phase 2 output (6 slides)
+├── presentation_phase2.html          ← Phase 2 output (13 slides)
 │
 ├── requirements.txt
 ├── README.md
