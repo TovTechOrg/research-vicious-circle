@@ -983,25 +983,44 @@ ses_rest = ses_col[inter_valid & ~hr_mask].median()
 sal_hr = sal_col[hr_mask].median()
 sal_rest = sal_col[inter_valid & ~hr_mask].median()
 
-# High-risk cluster boxplot data (6 indicators)
+# High-risk cluster boxplot data + Welch's T-test
 HR_INDICATORS = [
-    ("socio_economic_index_score", "Socio-Economic Score"),
-    ("peripherality_index_score", "Peripherality Score"),
-    ("average_monthly_salary_2023", "Avg Salary (₪)"),
-    ("income_support_rate", "Income Support Rate (%)"),
-    ("edu_bagrut_eligibility_pct", "Bagrut Eligibility (%)"),
-    ("edu_attain_pct_academic_degree", "Academic Degree (%)"),
+    ("socio_economic_index_score", "Socio-Economic Score", "scale ~-3 to +3"),
+    ("peripherality_index_score", "Peripherality Score", "lower = more peripheral"),
+    ("average_monthly_salary_2023", "Avg Salary (NIS)", "monthly"),
+    ("income_support_rate", "Income Support Rate", "% of working-age pop."),
+    ("edu_bagrut_eligibility_pct", "Bagrut Eligibility", "% of students"),
+    ("edu_attain_pct_academic_degree", "Academic Degree", "% of pop. 25-65"),
 ]
 hr_boxplot_data = {"indicators": [], "high_risk": [], "rest": []}
-for col_name, label in HR_INDICATORS:
+hr_comparison = []  # For detailed comparison cards
+from scipy.stats import ttest_ind
+for col_name, label, unit in HR_INDICATORS:
     if col_name not in df.columns:
         continue
     vals = pd.to_numeric(df.loc[df_reg.index, col_name], errors="coerce")
-    hr_vals = vals[hr_mask].dropna().tolist()
-    rest_vals = vals[inter_valid & ~hr_mask].dropna().tolist()
+    hr_vals = vals[hr_mask].dropna()
+    rest_vals = vals[inter_valid & ~hr_mask].dropna()
     hr_boxplot_data["indicators"].append(label)
-    hr_boxplot_data["high_risk"].append([round(float(v), 2) for v in hr_vals])
-    hr_boxplot_data["rest"].append([round(float(v), 2) for v in rest_vals])
+    hr_boxplot_data["high_risk"].append([round(float(v), 2) for v in hr_vals.tolist()])
+    hr_boxplot_data["rest"].append([round(float(v), 2) for v in rest_vals.tolist()])
+    # Welch's T-test
+    if len(hr_vals) >= 2 and len(rest_vals) >= 2:
+        t_stat, p_val = ttest_ind(hr_vals.values, rest_vals.values, equal_var=False)
+    else:
+        t_stat, p_val = float("nan"), float("nan")
+    hr_mean = float(hr_vals.mean())
+    rest_mean = float(rest_vals.mean())
+    delta = hr_mean - rest_mean
+    hr_comparison.append({
+        "col": col_name, "label": label, "unit": unit,
+        "hr_mean": hr_mean, "rest_mean": rest_mean, "delta": delta,
+        "t_stat": t_stat, "p_val": p_val,
+        "significant": p_val < 0.05 if not np.isnan(p_val) else False,
+    })
+
+n_significant = sum(1 for c in hr_comparison if c["significant"])
+print(f"  Welch's T-test: {n_significant}/{len(hr_comparison)} indicators significant (p<0.05)")
 
 # Scatter data for Chart.js — dual panel (peripheral vs non-peripheral)
 ses_cluster_col = pd.to_numeric(df.loc[df_reg.index, "socio_economic_index_cluster"], errors="coerce")
@@ -1857,7 +1876,40 @@ html_output = f"""<!DOCTYPE html>
     <div class="chart-wrap tall"><canvas id="chart_hr_boxplot"></canvas></div>
   </div>
 
-  <div class="card-grid">
+  <!-- Welch's T-test comparison cards -->
+  <h3 style="font-size:1.1rem;font-weight:600;margin:28px 0 8px;">Statistical Comparison: High-Risk vs Rest (Welch&rsquo;s T-test)</h3>
+  <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">
+    Mean values compared between the <strong>{n_high_risk} High-Risk</strong> settlements and the remaining <strong>{n_inter - n_high_risk}</strong>.
+    Only indicators with <strong>p &lt; 0.05</strong> are statistically significant.
+  </p>
+  <div class="card-grid" style="grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));">
+    {"".join(f'''
+    <div class="card" style="border-top:3px solid {'var(--negative)' if c['significant'] else 'var(--border)'};">
+      <h3 style="font-size:0.95rem;margin-bottom:8px;">{c['label']}</h3>
+      <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:10px;">{c['unit']}</p>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <div style="text-align:center;">
+          <div style="font-size:1.3rem;font-weight:700;color:var(--negative);">{c['hr_mean']:.1f}</div>
+          <div style="font-size:0.72rem;color:var(--text-secondary);">High-Risk</div>
+        </div>
+        <div style="text-align:center;font-size:1.1rem;color:var(--text-secondary);align-self:center;">vs</div>
+        <div style="text-align:center;">
+          <div style="font-size:1.3rem;font-weight:700;color:var(--color-1);">{c['rest_mean']:.1f}</div>
+          <div style="font-size:0.72rem;color:var(--text-secondary);">Rest</div>
+        </div>
+      </div>
+      <div style="font-size:0.82rem;padding:6px 8px;border-radius:6px;background:{'rgba(196,78,82,0.1)' if c['significant'] else 'rgba(128,128,128,0.08)'};">
+        <strong>&Delta; = {c['delta']:+.2f}</strong> &nbsp;|&nbsp;
+        t = {c['t_stat']:.2f} &nbsp;|&nbsp;
+        <span style="color:{'var(--negative)' if c['significant'] else 'var(--text-secondary)'};">
+          p = {c['p_val']:.4f} {'&#x2713;' if c['significant'] else '(n.s.)'}
+        </span>
+      </div>
+    </div>''' for c in hr_comparison)}
+  </div>
+
+  <!-- Insight cards -->
+  <div class="card-grid" style="margin-top:var(--gap);">
     <div class="card" style="border-top:3px solid var(--negative);">
       <h3>The Pattern That Shouldn&rsquo;t Exist</h3>
       <p>In non-peripheral settlements (r = {r_nonperiph}), the child-adult disability link is
@@ -1866,11 +1918,18 @@ html_output = f"""<!DOCTYPE html>
       Wealth alone does not break the cycle.</p>
     </div>
     <div class="card" style="border-top:3px solid var(--color-1);">
+      <h3>Overall Picture</h3>
+      <p>High-Risk settlements combine: low socio-economic standing ({ses_hr:.2f} vs {ses_rest:.2f}),
+      lower wages (&#8362;{sal_hr:,.0f} vs &#8362;{sal_rest:,.0f}), higher income support dependence,
+      and lower education &mdash; creating a <strong>self-reinforcing environment</strong> where both
+      adults and children depend on disability benefits.
+      {n_significant} of {len(hr_comparison)} indicators show statistically significant differences (Welch&rsquo;s T-test).</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--color-2);">
       <h3>What This Means for Policy</h3>
-      <p>The {n_high_risk} high-risk settlements have a median SES score of {ses_hr:.3f}
-      vs {ses_rest:.3f} in the rest &mdash; deep economic deprivation overlapping with
-      intergenerational disability. These communities need holistic
-      <strong>family-level</strong> interventions, not individual support alone.</p>
+      <p>The {n_high_risk} high-risk settlements need holistic <strong>family-level</strong> rehabilitation programs,
+      not individual disability support alone. Breaking the intergenerational cycle requires
+      simultaneous intervention in education, employment, and healthcare access.</p>
     </div>
   </div>
 </div>
