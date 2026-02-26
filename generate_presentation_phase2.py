@@ -675,10 +675,25 @@ haredi_mask = haredi_pct > 50
 secular_mask = (~arab_mask) & (~haredi_mask)
 
 sector_rows = []
-# OLS full-fit predictions mapped to df_reg index
-ols_full_pred_arr = np.full(len(y), np.nan)
-ols_valid_positions = np.array([list(df_reg.index).index(idx) for idx in ols_valid_idx])
-ols_full_pred_arr[ols_valid_positions] = ols_model.predict(scaler.transform(X_ols_raw))
+# OLS OOF predictions (fair comparison with ensemble)
+from sklearn.model_selection import KFold as _KFold
+
+ols_oof_arr = np.full(len(y), np.nan)
+# Use df_ols (which has the derived OLS features) mapped to df_reg positions
+ols_feature_cols = [c for c in OLS_FEATURES if c in df_ols.columns]
+if ols_feature_cols:
+    # df_ols has same index as df_reg, map positions
+    X_ols_full = df_ols[ols_feature_cols].copy()
+    ols_full_valid = X_ols_full.notna().all(axis=1)
+    # Positions relative to df_reg
+    ols_pos_in_reg = np.array([list(df_reg.index).index(idx) for idx in df_ols.index[ols_full_valid]])
+    X_ols_v = X_ols_full.loc[ols_full_valid].values
+    y_ols_v = y[ols_pos_in_reg]
+    ols_pipe = Pipeline([("scaler", StandardScaler()), ("lr", LinearRegression())])
+    ols_kf = _KFold(n_splits=5, shuffle=True, random_state=42)
+    ols_oof_preds = cross_val_predict(ols_pipe, X_ols_v, y_ols_v, cv=ols_kf)
+    ols_oof_arr[ols_pos_in_reg] = ols_oof_preds
+    print(f"  OLS OOF R2 = {round(r2_score(y_ols_v, ols_oof_preds), 3)}")
 
 for sname, smask in [
     ("Arab >50%", arab_mask), ("Haredi >50%", haredi_mask),
@@ -689,10 +704,10 @@ for sname, smask in [
     row["rf_r2"] = round(r2_score(y[smask], rf_pred_oof[smask]), 3) if n >= 5 else None
     row["xgb_r2"] = round(r2_score(y[smask], xgb_pred_oof[smask]), 3) if xgb_available and n >= 5 else None
     row["tabpfn_r2"] = round(r2_score(y[smask], tabpfn_pred_oof[smask]), 3) if tabpfn_available and n >= 5 else None
-    # OLS sector R2 (only where OLS has predictions)
-    ols_sector_mask = smask & ~np.isnan(ols_full_pred_arr)
+    # OLS sector R2 — now using OOF predictions (fair comparison)
+    ols_sector_mask = smask & ~np.isnan(ols_oof_arr)
     n_ols_sector = int(ols_sector_mask.sum())
-    row["ols_r2"] = round(r2_score(y[ols_sector_mask], ols_full_pred_arr[ols_sector_mask]), 3) if n_ols_sector >= 5 else None
+    row["ols_r2"] = round(r2_score(y[ols_sector_mask], ols_oof_arr[ols_sector_mask]), 3) if n_ols_sector >= 5 else None
     sector_rows.append(row)
 
 arab_r2_vals = [v for row in sector_rows if row["sector"] == "Arab >50%"
@@ -713,19 +728,29 @@ arab_row = next(r for r in sector_rows if r["sector"] == "Arab >50%")
 all_row = next(r for r in sector_rows if r["sector"] == "All 278")
 secular_row = next(r for r in sector_rows if r["sector"] == "Secular")
 
-arab_chart_data = {"models": [], "arab_r2": [], "overall_r2": [], "secular_r2": []}
+haredi_row = next(r for r in sector_rows if r["sector"] == "Haredi >50%")
+
+haredi_r2_vals = [v for row in sector_rows if row["sector"] == "Haredi >50%"
+                  for k, v in row.items() if k.endswith("_r2") and v is not None]
+best_haredi_r2 = max(haredi_r2_vals) if haredi_r2_vals else 0.0
+haredi_unexplained_pct = round((1 - best_haredi_r2) * 100)
+
+arab_chart_data = {"models": [], "arab_r2": [], "haredi_r2": [], "overall_r2": [], "secular_r2": []}
 arab_chart_data["models"].append("RandomForest")
 arab_chart_data["arab_r2"].append(arab_row["rf_r2"])
+arab_chart_data["haredi_r2"].append(haredi_row["rf_r2"])
 arab_chart_data["overall_r2"].append(all_row["rf_r2"])
 arab_chart_data["secular_r2"].append(secular_row["rf_r2"])
 if xgb_available:
     arab_chart_data["models"].append("XGBoost")
     arab_chart_data["arab_r2"].append(arab_row["xgb_r2"])
+    arab_chart_data["haredi_r2"].append(haredi_row["xgb_r2"])
     arab_chart_data["overall_r2"].append(all_row["xgb_r2"])
     arab_chart_data["secular_r2"].append(secular_row["xgb_r2"])
 if tabpfn_available:
     arab_chart_data["models"].append("TabPFN v2")
     arab_chart_data["arab_r2"].append(arab_row["tabpfn_r2"])
+    arab_chart_data["haredi_r2"].append(haredi_row["tabpfn_r2"])
     arab_chart_data["overall_r2"].append(all_row["tabpfn_r2"])
     arab_chart_data["secular_r2"].append(secular_row["tabpfn_r2"])
 
@@ -733,6 +758,7 @@ if tabpfn_available:
 if arab_row.get("ols_r2") is not None:
     arab_chart_data["models"].append("Linear Regression")
     arab_chart_data["arab_r2"].append(arab_row["ols_r2"])
+    arab_chart_data["haredi_r2"].append(haredi_row.get("ols_r2"))
     arab_chart_data["overall_r2"].append(all_row.get("ols_r2"))
     arab_chart_data["secular_r2"].append(secular_row.get("ols_r2"))
 
@@ -1949,7 +1975,7 @@ html_output = f"""<!DOCTYPE html>
 
   <div class="chart-card">
     <div class="chart-title">Model R&sup2; by Population Sector</div>
-    <div class="chart-annotation">R&sup2; = {arab_best_r2:.3f} for Arab settlements vs {fmt_num(best_secular_r2, 3)} for Secular. The wall is consistent across all model architectures.</div>
+    <div class="chart-annotation">R&sup2; = {arab_best_r2:.3f} for Arab settlements, {fmt_num(best_haredi_r2, 3)} for Haredi, {fmt_num(best_secular_r2, 3)} for Secular. The Arab wall is consistent across all model architectures.</div>
     <div class="chart-wrap"><canvas id="chart_arab_r2"></canvas></div>
   </div>
 
@@ -2636,6 +2662,14 @@ new Chart(document.getElementById("chart_importance"), {{
           label: "All 278",
           data: arabChartData.overall_r2,
           backgroundColor: "#adb5bd",
+          borderRadius: 4,
+          barPercentage: 0.8,
+          categoryPercentage: 0.7
+        }},
+        {{
+          label: "Haredi >50%",
+          data: arabChartData.haredi_r2,
+          backgroundColor: "#FFB703",
           borderRadius: 4,
           barPercentage: 0.8,
           categoryPercentage: 0.7
