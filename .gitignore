@@ -1,5 +1,6 @@
 # Data (shared physically, not committed)
 datas_for_research_vicious_circle_project/
+data/
 
 # Local scratch / legacy / education artifacts
 local/

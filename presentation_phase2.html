@@ -486,6 +486,7 @@
     <a href="#wall">The Wall</a>
     <a href="#ruled-out">Ruled Out</a>
     <a href="#drivers">What Drives It</a>
+    <a href="#interactions">Interaction Effects</a>
     <a href="#action">Action Plan</a>
   </div>
 </nav>
@@ -503,7 +504,7 @@
 <!-- Section 1: The Problem -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <div class="section" id="problem" style="border-top:none;padding-top:0;">
-  <h2 class="section-title">People Who Qualify for Disability Benefits Are Not Receiving Them</h2>
+  <h2 class="section-title">1. People Who Qualify for Disability Benefits Are Not Receiving Them</h2>
   <p class="section-subtitle">Israel&rsquo;s National Insurance Institute pays disability benefits to hundreds of thousands of people.
   But in some settlements, far fewer people claim than we would expect given their socio-economic conditions.
   We analyzed 278 settlements with 15 indicators to find out where &mdash; and why.</p>
@@ -544,12 +545,12 @@
 <!-- Section 2: Missing Claimants (Q1) -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <div class="section" id="missing">
-  <h2 class="section-title"><span class="q-badge">Research Question 1</span> Settlements That Claim Far Less Than Their Conditions Predict</h2>
+  <h2 class="section-title">2. <span class="q-badge">Research Question 1</span> Settlements That Claim Far Less Than Their Conditions Predict</h2>
   <p class="section-subtitle">Two independent methods &mdash; a non-linear ensemble and a linear regression &mdash; predict disability rates from socio-economic data. Settlements beyond &plusmn;1.5&sigma; are flagged as anomalies.</p>
 
   <!-- ── Ensemble scatter ── -->
   <div class="chart-card">
-    <div class="chart-title">Expected vs Observed Disability Rate <span style="font-weight:400;font-size:0.85rem;color:var(--text-secondary);">(Ensemble: RF + XGBoost + TabPFN)</span></div>
+    <div class="chart-title">2.1 Expected vs Observed Disability Rate <span style="font-weight:400;font-size:0.85rem;color:var(--text-secondary);">(Ensemble: RF + XGBoost + TabPFN)</span></div>
     <div class="chart-annotation"><strong style="color:#55A868;">Green diamonds</strong> = under-utilization. <strong style="color:#C44E52;">Red crosses</strong> = hidden burden. Dashed bands = &plusmn;1.5&sigma; (2.2 pp).</div>
     <div style="margin:8px 0 4px;display:flex;align-items:center;gap:8px;">
       <input id="search_ensemble" type="text" placeholder="Search settlement..." style="padding:5px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;width:220px;outline:none;" />
@@ -592,125 +593,12 @@
 
   <!-- ── OLS scatter ── -->
   <div class="chart-card" style="margin-top:24px;">
-    <div class="chart-title">Expected vs Observed Disability Rate <span style="font-weight:400;font-size:0.85rem;color:var(--text-secondary);">(Linear Regression, R&sup2; = 0.699)</span></div>
+    <div class="chart-title">2.2 Expected vs Observed Disability Rate <span style="font-weight:400;font-size:0.85rem;color:var(--text-secondary);">(Linear Regression, R&sup2; = 0.699)</span></div>
     <div style="margin:8px 0 4px;display:flex;align-items:center;gap:8px;">
       <input id="search_ols" type="text" placeholder="Search settlement..." style="padding:5px 10px;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;width:220px;outline:none;" />
       <span id="search_ols_result" style="font-size:0.8rem;color:var(--text-secondary);"></span>
     </div>
     <div class="chart-wrap tall"><canvas id="chart_anomaly_scatter"></canvas></div>
-  </div>
-
-  <!-- ── OLS Coefficients narrative + table ── -->
-  <div style="margin-top:28px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-    <h4 style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:12px;">What the Model Uses &amp; What It Found</h4>
-
-    <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.7;margin-bottom:20px;">
-      To explain the general disability benefit rate across settlements, I used eight standardised explanatory variables:
-      <strong>log salary</strong>, <strong>peripherality index</strong>, <strong>income support rate</strong>,
-      <strong>share of population aged 65+</strong>, <strong>labour participation rate</strong>, <strong>dependency ratio</strong>,
-      and two dummy variables — <strong>Arab-majority settlement</strong> and <strong>Haredi-majority settlement</strong>
-      (OLS with HC3 robust standard errors; N&nbsp;=&nbsp;263, R²&nbsp;=&nbsp;0.699).
-      <br><br>
-      Five of these variables are <strong>statistically significant (p &lt; 0.05)</strong>:
-      <em>log salary</em> (β&nbsp;=&nbsp;−1.89, p&nbsp;&lt;&nbsp;0.001),
-      <em>Arab-majority settlement</em> (β&nbsp;=&nbsp;−1.41, p&nbsp;=&nbsp;0.004),
-      <em>share 65+</em> (β&nbsp;=&nbsp;+0.98, p&nbsp;&lt;&nbsp;0.001),
-      <em>dependency ratio</em> (β&nbsp;=&nbsp;−0.66, p&nbsp;&lt;&nbsp;0.001), and
-      <em>peripherality index</em> (β&nbsp;=&nbsp;−0.26, p&nbsp;=&nbsp;0.005).
-      In plain terms:
-      a settlement with an Arab majority is associated with a <strong>1.41 percentage-point lower</strong> disability rate,
-      all else equal;
-      a one-standard-deviation increase in the share of residents aged 65 and above is associated with a
-      <strong>0.98 pp higher</strong> disability-benefit rate on average;
-      and a one-SD increase in log salary is associated with a
-      <strong>1.89 pp lower</strong> disability rate.
-    </p>
-
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
-        <thead>
-          <tr style="background:#f1f5f9;color:var(--text-secondary);text-align:left;">
-            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;">Variable</th>
-            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;text-align:center;">β (std. coef.)</th>
-            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;text-align:center;">Std. Error</th>
-            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;text-align:center;">p-value</th>
-            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;text-align:center;">Significance</th>
-            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;">Interpretation (1 SD / dummy)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr style="background:#f0fdf4;border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 12px;font-weight:600;color:#15803d;">Log Salary</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">−1.890</td>
-            <td style="padding:8px 12px;text-align:center;">0.153</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:600;color:#15803d;">&lt; 0.001</td>
-            <td style="padding:8px 12px;text-align:center;"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:700;">★★★</span></td>
-            <td style="padding:8px 12px;color:#374151;">+1 SD in salary → −1.89 pp disability rate</td>
-          </tr>
-          <tr style="background:#f0fdf4;border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 12px;font-weight:600;color:#15803d;">Arab-majority (dummy)</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">−1.414</td>
-            <td style="padding:8px 12px;text-align:center;">0.492</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:600;color:#15803d;">0.004</td>
-            <td style="padding:8px 12px;text-align:center;"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:700;">★★</span></td>
-            <td style="padding:8px 12px;color:#374151;">Arab-majority settlement → −1.41 pp disability rate, all else equal</td>
-          </tr>
-          <tr style="background:#f0fdf4;border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 12px;font-weight:600;color:#15803d;">Population 65+ %</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">+0.981</td>
-            <td style="padding:8px 12px;text-align:center;">0.172</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:600;color:#15803d;">&lt; 0.001</td>
-            <td style="padding:8px 12px;text-align:center;"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:700;">★★★</span></td>
-            <td style="padding:8px 12px;color:#374151;">+1 SD in share of 65+ → +0.98 pp disability rate</td>
-          </tr>
-          <tr style="background:#f0fdf4;border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 12px;font-weight:600;color:#15803d;">Dependency Ratio</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">−0.663</td>
-            <td style="padding:8px 12px;text-align:center;">0.139</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:600;color:#15803d;">&lt; 0.001</td>
-            <td style="padding:8px 12px;text-align:center;"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:700;">★★★</span></td>
-            <td style="padding:8px 12px;color:#374151;">+1 SD in dependency ratio → −0.66 pp disability rate</td>
-          </tr>
-          <tr style="background:#f0fdf4;border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 12px;font-weight:600;color:#15803d;">Peripherality Index</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">−0.259</td>
-            <td style="padding:8px 12px;text-align:center;">0.093</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:600;color:#15803d;">0.005</td>
-            <td style="padding:8px 12px;text-align:center;"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:700;">★★</span></td>
-            <td style="padding:8px 12px;color:#374151;">+1 SD in peripherality → −0.26 pp disability rate</td>
-          </tr>
-          <tr style="background:#fff;border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 12px;color:#6b7280;">Labour Participation</td>
-            <td style="padding:8px 12px;text-align:center;color:#6b7280;">−0.517</td>
-            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.295</td>
-            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.080</td>
-            <td style="padding:8px 12px;text-align:center;"><span style="background:#e5e7eb;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:600;">n.s.</span></td>
-            <td style="padding:8px 12px;color:#9ca3af;">Not statistically significant (p = 0.080)</td>
-          </tr>
-          <tr style="background:#fff;border-bottom:1px solid #e2e8f0;">
-            <td style="padding:8px 12px;color:#6b7280;">Income Support Rate</td>
-            <td style="padding:8px 12px;text-align:center;color:#6b7280;">+0.162</td>
-            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.190</td>
-            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.394</td>
-            <td style="padding:8px 12px;text-align:center;"><span style="background:#e5e7eb;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:600;">n.s.</span></td>
-            <td style="padding:8px 12px;color:#9ca3af;">Not statistically significant (p = 0.394)</td>
-          </tr>
-          <tr style="background:#fff;">
-            <td style="padding:8px 12px;color:#6b7280;">Haredi-majority (dummy)</td>
-            <td style="padding:8px 12px;text-align:center;color:#6b7280;">+0.342</td>
-            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.789</td>
-            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.665</td>
-            <td style="padding:8px 12px;text-align:center;"><span style="background:#e5e7eb;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:600;">n.s.</span></td>
-            <td style="padding:8px 12px;color:#9ca3af;">Not statistically significant (p = 0.665)</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p style="font-size:0.77rem;color:#9ca3af;margin-top:10px;">
-      All continuous variables are standardised (z-scored) before estimation. Coefficients reflect the change in the disability rate (percentage points) per one standard deviation.
-      Dummy variables reflect the level difference relative to the reference group (non-Arab, non-Haredi settlements).
-      HC3 heteroscedasticity-robust standard errors. ★★★ p&nbsp;&lt;&nbsp;0.001 &nbsp;|&nbsp; ★★ p&nbsp;&lt;&nbsp;0.01 &nbsp;|&nbsp; ★ p&nbsp;&lt;&nbsp;0.05 &nbsp;|&nbsp; n.s. not significant.
-    </p>
   </div>
 
   <!-- OLS: clickable sector cards -->
@@ -3292,13 +3180,126 @@
   </div>
     </div>
   </details>
-</div>
+
+
+  <!-- ── OLS Coefficients narrative + table ── -->
+  <div style="margin-top:28px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+    <h4 style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:12px;">2.3 What the Model Uses &amp; What It Found</h4>
+
+    <p style="font-size:0.9rem;color:var(--text-secondary);line-height:1.7;margin-bottom:20px;">
+      To explain the general disability benefit rate across settlements, I used eight explanatory variables:
+      <strong>log salary</strong>, <strong>peripherality index</strong>, <strong>income support rate</strong>,
+      <strong>share of population aged 65+</strong>, <strong>labour participation rate</strong>, <strong>dependency ratio</strong>,
+      and two dummy variables — <strong>Arab-majority settlement</strong> and <strong>Haredi-majority settlement</strong>
+      (OLS with HC3 robust standard errors; N&nbsp;=&nbsp;263, R²&nbsp;=&nbsp;0.698).
+      <br><br>
+      Five of these variables are <strong>statistically significant (p &lt; 0.05)</strong>:
+      <em>log salary</em> (β&nbsp;=&nbsp;−5.964, p&nbsp;&lt;&nbsp;0.001),
+      <em>Arab-majority settlement</em> (β&nbsp;=&nbsp;−1.414, p&nbsp;=&nbsp;0.004),
+      <em>share 65+</em> (β&nbsp;=&nbsp;+0.175, p&nbsp;&lt;&nbsp;0.001),
+      <em>dependency ratio</em> (β&nbsp;=&nbsp;−0.029, p&nbsp;&lt;&nbsp;0.001), and
+      <em>peripherality index</em> (β&nbsp;=&nbsp;−0.236, p&nbsp;=&nbsp;0.005).
+      In plain terms:
+      a settlement with an Arab majority is associated with a <strong>1.41 percentage-point lower</strong> disability rate,
+      all else equal;
+      a one-percentage-point increase in the share of residents aged 65 and above is associated with a
+      <strong>0.175 pp higher</strong> disability-benefit rate on average;
+      and a 1% increase in average salary is associated with a
+      <strong>0.060 pp lower</strong> disability rate (Level-Log model: β / 100 = −5.964 / 100).
+    </p>
+
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+        <thead>
+          <tr style="background:#f1f5f9;color:var(--text-secondary);text-align:left;">
+            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;">Variable</th>
+            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;text-align:center;">β (coef.)</th>
+            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;text-align:center;">Std. Error</th>
+            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;text-align:center;">p-value</th>
+            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;text-align:center;">Significance</th>
+            <th style="padding:8px 12px;border-bottom:2px solid #cbd5e1;font-weight:600;">Interpretation (1 unit / dummy)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="background:#f0fdf4;border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 12px;font-weight:600;color:#15803d;">Log Salary</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">−5.964</td>
+            <td style="padding:8px 12px;text-align:center;">0.482</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:600;color:#15803d;">&lt; 0.001</td>
+            <td style="padding:8px 12px;text-align:center;"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:700;">★★★</span></td>
+            <td style="padding:8px 12px;color:#374151;">+1% in avg. salary → −0.060 pp disability rate (Level-Log: β/100)</td>
+          </tr>
+          <tr style="background:#f0fdf4;border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 12px;font-weight:600;color:#15803d;">Arab-majority (dummy)</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">−1.414</td>
+            <td style="padding:8px 12px;text-align:center;">0.492</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:600;color:#15803d;">0.004</td>
+            <td style="padding:8px 12px;text-align:center;"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:700;">★★</span></td>
+            <td style="padding:8px 12px;color:#374151;">Arab-majority settlement → −1.41 pp disability rate, all else equal</td>
+          </tr>
+          <tr style="background:#f0fdf4;border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 12px;font-weight:600;color:#15803d;">Population 65+ %</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">+0.175</td>
+            <td style="padding:8px 12px;text-align:center;">0.031</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:600;color:#15803d;">&lt; 0.001</td>
+            <td style="padding:8px 12px;text-align:center;"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:700;">★★★</span></td>
+            <td style="padding:8px 12px;color:#374151;">+1 pp in share of 65+ → +0.175 pp disability rate</td>
+          </tr>
+          <tr style="background:#f0fdf4;border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 12px;font-weight:600;color:#15803d;">Dependency Ratio</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">−0.029</td>
+            <td style="padding:8px 12px;text-align:center;">0.006</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:600;color:#15803d;">&lt; 0.001</td>
+            <td style="padding:8px 12px;text-align:center;"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:700;">★★★</span></td>
+            <td style="padding:8px 12px;color:#374151;">+1 unit in dependency ratio → −0.029 pp disability rate</td>
+          </tr>
+          <tr style="background:#f0fdf4;border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 12px;font-weight:600;color:#15803d;">Peripherality Index</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">−0.236</td>
+            <td style="padding:8px 12px;text-align:center;">0.084</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:600;color:#15803d;">0.005</td>
+            <td style="padding:8px 12px;text-align:center;"><span style="background:#22c55e;color:#fff;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:700;">★★</span></td>
+            <td style="padding:8px 12px;color:#374151;">+1 unit in peripherality index → −0.236 pp disability rate</td>
+          </tr>
+          <tr style="background:#fff;border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 12px;color:#6b7280;">Labour Participation</td>
+            <td style="padding:8px 12px;text-align:center;color:#6b7280;">−0.071</td>
+            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.041</td>
+            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.080</td>
+            <td style="padding:8px 12px;text-align:center;"><span style="background:#e5e7eb;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:600;">n.s.</span></td>
+            <td style="padding:8px 12px;color:#9ca3af;">Not statistically significant (p = 0.080)</td>
+          </tr>
+          <tr style="background:#fff;border-bottom:1px solid #e2e8f0;">
+            <td style="padding:8px 12px;color:#6b7280;">Income Support Rate</td>
+            <td style="padding:8px 12px;text-align:center;color:#6b7280;">+0.139</td>
+            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.163</td>
+            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.394</td>
+            <td style="padding:8px 12px;text-align:center;"><span style="background:#e5e7eb;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:600;">n.s.</span></td>
+            <td style="padding:8px 12px;color:#9ca3af;">Not statistically significant (p = 0.394)</td>
+          </tr>
+          <tr style="background:#fff;">
+            <td style="padding:8px 12px;color:#6b7280;">Haredi-majority (dummy)</td>
+            <td style="padding:8px 12px;text-align:center;color:#6b7280;">+0.342</td>
+            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.789</td>
+            <td style="padding:8px 12px;text-align:center;color:#6b7280;">0.665</td>
+            <td style="padding:8px 12px;text-align:center;"><span style="background:#e5e7eb;color:#6b7280;padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:600;">n.s.</span></td>
+            <td style="padding:8px 12px;color:#9ca3af;">Not statistically significant (p = 0.665)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:0.77rem;color:#9ca3af;margin-top:10px;">
+      Variables are in their original (unstandardised) units. Coefficients reflect the change in the disability rate (percentage points) per one-unit increase in the explanatory variable.
+      Dummy variables reflect the level difference relative to the reference group (non-Arab, non-Haredi settlements).
+      HC3 heteroscedasticity-robust standard errors. ★★★ p&nbsp;&lt;&nbsp;0.001 &nbsp;|&nbsp; ★★ p&nbsp;&lt;&nbsp;0.01 &nbsp;|&nbsp; ★ p&nbsp;&lt;&nbsp;0.05 &nbsp;|&nbsp; n.s. not significant.
+    </p>
+  </div></div>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <!-- Section 3: Childhood Cycle (Q2) -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <div class="section" id="childhood">
-  <h2 class="section-title"><span class="q-badge">Research Question 2</span> Where Children Need Help, Adults Need It Too &mdash; Even in Wealthy Areas</h2>
+  <h2 class="section-title">3. <span class="q-badge">Research Question 2</span> Where Children Need Help, Adults Need It Too &mdash; Even in Wealthy Areas</h2>
   <p class="section-subtitle">Child disability rates correlate with adult disability rates across all regions. The surprise: the correlation is <strong>stronger</strong> in non-peripheral settlements (Fisher&rsquo;s Z p < 0.05).</p>
 
   <!-- KPI row: Overall + Peripheral vs Non-Peripheral -->
@@ -3321,7 +3322,7 @@
 
   <!-- Dual-panel scatter: Peripheral vs Non-Peripheral -->
   <div class="chart-card">
-    <div class="chart-title">Child Disability Rate vs Adult Disability Rate &mdash; Peripheral vs Non-Peripheral</div>
+    <div class="chart-title">3.1 Child Disability Rate vs Adult Disability Rate &mdash; Peripheral vs Non-Peripheral</div>
     <div class="chart-annotation">Each dot is a settlement, colored by SES cluster (red=low, green=high). Dashed line = OLS trend. The steeper slope and tighter fit in non-peripheral settlements (r&nbsp;=&nbsp;0.696) confirms that the intergenerational pattern is <strong>not</strong> confined to the periphery.</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div class="chart-wrap tall"><canvas id="chart_inter_periph"></canvas></div>
@@ -3331,8 +3332,8 @@
   
   <!-- ── 3-Model Regression Summary ── -->
   <div style="margin-top:28px;padding:20px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-    <h4 style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Robustness Check: Does the Child&ndash;Adult Disability Link Survive Controls?</h4>
-    <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:18px;">Three nested OLS models &mdash; HC3 robust standard errors, N&nbsp;=&nbsp;263. All continuous variables standardised (z-scored).</p>
+    <h4 style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">3.2 Robustness Check: Does the Child&ndash;Adult Disability Link Survive Controls?</h4>
+    <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:18px;">Three nested OLS models &mdash; HC3 robust standard errors, N&nbsp;=&nbsp;263. Variables are in their original (unstandardised) units.</p>
 
     <!-- Model description cards -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:22px;">
@@ -3361,8 +3362,8 @@
         <p style="font-size:0.85rem;color:#374151;line-height:1.6;">
           Even after controlling for salary, peripherality, labour market participation, demographics, and sector identity,
           <strong>disabled_child_benefit_rate</strong> continues to significantly predict the adult disability rate.
-          Its coefficient drops from <strong>β&nbsp;=&nbsp;1.128</strong> (Model 1, raw) to <strong>β&nbsp;=&nbsp;0.881</strong> (Model 2) and
-          <strong>β&nbsp;=&nbsp;0.856</strong> (Model 3), but remains highly significant in every specification.
+          Its coefficient drops from <strong>β&nbsp;=&nbsp;0.744</strong> (Model 1, raw) to <strong>β&nbsp;=&nbsp;0.581</strong> (Model 2) and
+          <strong>β&nbsp;=&nbsp;0.565</strong> (Model 3), but remains highly significant in every specification.
           This is the core evidence for an intergenerational disability cycle that operates independently of socio-economic conditions.
         </p>
       </div>
@@ -3386,58 +3387,58 @@
               disabled_child_benefit_rate
               <span style="display:block;font-size:0.72rem;font-weight:400;color:#6b7280;">← variable of interest</span>
             </td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">1.128***<br><span style="font-size:0.75rem;font-weight:400;color:#6b7280;">(0.124)</span></td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">0.881***<br><span style="font-size:0.75rem;font-weight:400;color:#6b7280;">(0.086)</span></td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">0.856***<br><span style="font-size:0.75rem;font-weight:400;color:#6b7280;">(0.097)</span></td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">0.744***<br><span style="font-size:0.75rem;font-weight:400;color:#6b7280;">(0.091)</span></td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">0.581***<br><span style="font-size:0.75rem;font-weight:400;color:#6b7280;">(0.080)</span></td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#15803d;">0.565***<br><span style="font-size:0.75rem;font-weight:400;color:#6b7280;">(0.091)</span></td>
           </tr>
           <!-- Controls -->
           <tr style="background:#fff;border-bottom:1px solid #f1f5f9;">
             <td style="padding:8px 12px;color:#374151;">Log Salary</td>
             <td style="padding:8px 12px;text-align:center;color:#9ca3af;">&mdash;</td>
-            <td style="padding:8px 12px;text-align:center;">−1.360***<br><span style="font-size:0.75rem;color:#6b7280;">(0.114)</span></td>
-            <td style="padding:8px 12px;text-align:center;">−1.328***<br><span style="font-size:0.75rem;color:#6b7280;">(0.139)</span></td>
+            <td style="padding:8px 12px;text-align:center;">−4.291***<br><span style="font-size:0.75rem;color:#6b7280;">(0.343)</span></td>
+            <td style="padding:8px 12px;text-align:center;">−4.190***<br><span style="font-size:0.75rem;color:#6b7280;">(0.450)</span></td>
           </tr>
           <tr style="background:#f8fafc;border-bottom:1px solid #f1f5f9;">
             <td style="padding:8px 12px;color:#374151;">Peripherality Index</td>
             <td style="padding:8px 12px;text-align:center;color:#9ca3af;">&mdash;</td>
-            <td style="padding:8px 12px;text-align:center;">−0.366***<br><span style="font-size:0.75rem;color:#6b7280;">(0.083)</span></td>
-            <td style="padding:8px 12px;text-align:center;">−0.371***<br><span style="font-size:0.75rem;color:#6b7280;">(0.084)</span></td>
+            <td style="padding:8px 12px;text-align:center;">−0.334***<br><span style="font-size:0.75rem;color:#6b7280;">(0.081)</span></td>
+            <td style="padding:8px 12px;text-align:center;">−0.338***<br><span style="font-size:0.75rem;color:#6b7280;">(0.083)</span></td>
           </tr>
           <tr style="background:#fff;border-bottom:1px solid #f1f5f9;">
             <td style="padding:8px 12px;color:#374151;">Income Support Rate</td>
             <td style="padding:8px 12px;text-align:center;color:#9ca3af;">&mdash;</td>
-            <td style="padding:8px 12px;text-align:center;color:#9ca3af;">−0.006&nbsp;<span style="font-size:0.72rem;">(n.s.)</span><br><span style="font-size:0.75rem;color:#6b7280;">(0.103)</span></td>
-            <td style="padding:8px 12px;text-align:center;color:#9ca3af;">+0.055&nbsp;<span style="font-size:0.72rem;">(n.s.)</span><br><span style="font-size:0.75rem;color:#6b7280;">(0.110)</span></td>
+            <td style="padding:8px 12px;text-align:center;color:#9ca3af;">−0.005&nbsp;<span style="font-size:0.72rem;">(n.s.)</span><br><span style="font-size:0.75rem;color:#6b7280;">(0.103)</span></td>
+            <td style="padding:8px 12px;text-align:center;color:#9ca3af;">+0.047&nbsp;<span style="font-size:0.72rem;">(n.s.)</span><br><span style="font-size:0.75rem;color:#6b7280;">(0.111)</span></td>
           </tr>
           <tr style="background:#f8fafc;border-bottom:1px solid #f1f5f9;">
             <td style="padding:8px 12px;color:#374151;">Population 65+ %</td>
             <td style="padding:8px 12px;text-align:center;color:#9ca3af;">&mdash;</td>
-            <td style="padding:8px 12px;text-align:center;">+0.637***<br><span style="font-size:0.75rem;color:#6b7280;">(0.112)</span></td>
-            <td style="padding:8px 12px;text-align:center;">+0.643***<br><span style="font-size:0.75rem;color:#6b7280;">(0.119)</span></td>
+            <td style="padding:8px 12px;text-align:center;">+0.114***<br><span style="font-size:0.75rem;color:#6b7280;">(0.021)</span></td>
+            <td style="padding:8px 12px;text-align:center;">+0.115***<br><span style="font-size:0.75rem;color:#6b7280;">(0.023)</span></td>
           </tr>
           <tr style="background:#fff;border-bottom:1px solid #f1f5f9;">
             <td style="padding:8px 12px;color:#374151;">Labour Participation</td>
             <td style="padding:8px 12px;text-align:center;color:#9ca3af;">&mdash;</td>
-            <td style="padding:8px 12px;text-align:center;">−0.454***<br><span style="font-size:0.75rem;color:#6b7280;">(0.106)</span></td>
-            <td style="padding:8px 12px;text-align:center;">−0.447***<br><span style="font-size:0.75rem;color:#6b7280;">(0.117)</span></td>
+            <td style="padding:8px 12px;text-align:center;">−0.062***<br><span style="font-size:0.75rem;color:#6b7280;">(0.016)</span></td>
+            <td style="padding:8px 12px;text-align:center;">−0.062***<br><span style="font-size:0.75rem;color:#6b7280;">(0.021)</span></td>
           </tr>
           <tr style="background:#f8fafc;border-bottom:1px solid #f1f5f9;">
             <td style="padding:8px 12px;color:#374151;">Dependency Ratio</td>
             <td style="padding:8px 12px;text-align:center;color:#9ca3af;">&mdash;</td>
-            <td style="padding:8px 12px;text-align:center;">−0.411***<br><span style="font-size:0.75rem;color:#6b7280;">(0.076)</span></td>
-            <td style="padding:8px 12px;text-align:center;">−0.484***<br><span style="font-size:0.75rem;color:#6b7280;">(0.104)</span></td>
+            <td style="padding:8px 12px;text-align:center;">−0.018***<br><span style="font-size:0.75rem;color:#6b7280;">(0.004)</span></td>
+            <td style="padding:8px 12px;text-align:center;">−0.021***<br><span style="font-size:0.75rem;color:#6b7280;">(0.005)</span></td>
           </tr>
           <tr style="background:#fff;border-bottom:1px solid #f1f5f9;">
             <td style="padding:8px 12px;color:#374151;">Arab-majority (dummy)</td>
             <td style="padding:8px 12px;text-align:center;color:#9ca3af;">&mdash;</td>
             <td style="padding:8px 12px;text-align:center;color:#9ca3af;">&mdash;</td>
-            <td style="padding:8px 12px;text-align:center;color:#9ca3af;">−0.077&nbsp;<span style="font-size:0.72rem;">(n.s.)</span><br><span style="font-size:0.75rem;color:#6b7280;">(0.332)</span></td>
+            <td style="padding:8px 12px;text-align:center;color:#9ca3af;">−0.077&nbsp;<span style="font-size:0.72rem;">(n.s.)</span><br><span style="font-size:0.75rem;color:#6b7280;">(0.381)</span></td>
           </tr>
           <tr style="background:#f8fafc;border-bottom:2px solid #cbd5e1;">
             <td style="padding:8px 12px;color:#374151;">Haredi-majority (dummy)</td>
             <td style="padding:8px 12px;text-align:center;color:#9ca3af;">&mdash;</td>
             <td style="padding:8px 12px;text-align:center;color:#9ca3af;">&mdash;</td>
-            <td style="padding:8px 12px;text-align:center;color:#9ca3af;">+0.552&nbsp;<span style="font-size:0.72rem;">(n.s.)</span><br><span style="font-size:0.75rem;color:#6b7280;">(0.398)</span></td>
+            <td style="padding:8px 12px;text-align:center;color:#9ca3af;">+0.552&nbsp;<span style="font-size:0.72rem;">(n.s.)</span><br><span style="font-size:0.75rem;color:#6b7280;">(0.715)</span></td>
           </tr>
           <!-- Footer stats -->
           <tr style="background:#f1f5f9;">
@@ -3463,23 +3464,23 @@
     </div>
     <p style="font-size:0.77rem;color:#9ca3af;margin-top:10px;">
       Standard errors in parentheses. *** p&nbsp;&lt;&nbsp;0.01 &nbsp;|&nbsp; ** p&nbsp;&lt;&nbsp;0.05 &nbsp;|&nbsp; * p&nbsp;&lt;&nbsp;0.1 &nbsp;|&nbsp; n.s. not significant.
-      All continuous variables are standardised (z-scored). HC3 heteroscedasticity-robust standard errors throughout.
+      Variables are in their original (unstandardised) units. HC3 heteroscedasticity-robust standard errors throughout.
       Model 3 is equivalent to the Research Question 1 linear regression with <code style="font-size:0.78rem;background:#f1f5f9;padding:1px 4px;border-radius:3px;">disabled_child_benefit_rate</code> added as an additional predictor.
     </p>
   </div>
 
-  <!-- High-Risk Cluster card -->
-  <div class="big-number-card" style="border-left:4px solid var(--negative);">
-    <div class="big-val">32</div>
-    <div class="big-desc">settlements (11.5%) where <strong>both</strong> adult and child disability rates exceed the 75th percentile &mdash; potential intergenerational disability traps</div>
-  </div>
-
   <!-- Welch's T-test comparison cards -->
-  <h3 style="font-size:1.15rem;font-weight:600;margin:28px 0 8px;">Statistical Comparison: High-Risk vs Rest (Welch&rsquo;s T-test)</h3>
+  <h3 style="font-size:1.15rem;font-weight:600;margin:28px 0 8px;">3.3 Statistical Comparison: High-Risk vs Rest (Welch&rsquo;s T-test)</h3>
   <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">
     Mean values compared between the <strong>32 High-Risk</strong> settlements and the remaining <strong>246</strong>.
     Only indicators with <strong>p &lt; 0.05</strong> are statistically significant.
   </p>
+
+  <!-- High-Risk Cluster card -->
+  <div class="big-number-card" style="border-left:4px solid var(--negative);">
+    <div class="big-val">32</div>
+    <div class="big-desc">settlements (11.5%) where <strong>both</strong> adult and child disability rates exceed the 75th percentile — potential intergenerational disability traps</div>
+  </div>
   <div class="card-grid" style="grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));">
     
     <div class="card" style="border-top:3px solid var(--negative);">
@@ -3647,7 +3648,7 @@
 <!-- Section 4: The Wall (CLIMAX — Arab R2 + integrated evidence) -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <div class="section" id="wall">
-  <h2 class="section-title">Every Model We Tried Hit the Same Wall</h2>
+  <h2 class="section-title">4. Every Model We Tried Hit the Same Wall</h2>
   <p class="section-subtitle">We tested Random Forest, XGBoost, TabPFN, and Linear Regression. All four models explain disability patterns well for most settlements &mdash; and fail for Arab communities.</p>
 
   <div class="big-number-card">
@@ -3657,7 +3658,7 @@
   </div>
 
   <div class="chart-card">
-    <div class="chart-title">Model R&sup2; by Population Sector</div>
+    <div class="chart-title">4.1 Model R&sup2; by Population Sector</div>
     <div class="chart-annotation">R&sup2; = 0.177 for Arab settlements, 0.420 for Haredi, 0.771 for Secular. The Arab wall is consistent across all model architectures.</div>
     <div class="chart-wrap"><canvas id="chart_arab_r2"></canvas></div>
   </div>
@@ -3675,7 +3676,7 @@
 
   <div class="card-grid" style="margin-top:var(--gap);grid-template-columns:1fr;">
     <div class="card" style="border-top:3px solid var(--negative);">
-      <h3>We Removed the Arab Variable &mdash; Nothing Changed</h3>
+      <h3>4.2 We Removed the Arab Variable &mdash; Nothing Changed</h3>
       <p>We re-ran the ensemble without <code>arab_population_percentage</code>.
       The under-utilization list stayed <strong>identical</strong>.
       The model doesn&rsquo;t need an &ldquo;Arab&rdquo; label &mdash; it reconstructs the group from
@@ -3691,7 +3692,7 @@
 
   <div class="card-grid" style="margin-top:var(--gap);">
     <div class="card" style="border-top:3px solid var(--color-5);">
-      <h3>This Has Happened Before</h3>
+      <h3>4.3 This Has Happened Before</h3>
       <p><strong>Obermeyer et al. (2019, Science)</strong>: A US healthcare algorithm trained on
          200 million patients used <em>cost</em> as proxy for <em>need</em>. Because the system
          spent less on Black patients with equivalent illness, the algorithm concluded they were healthier.</p>
@@ -3700,7 +3701,7 @@
          claim &mdash; creating the illusion of lower need.</p>
     </div>
     <div class="card" style="border-top:3px solid var(--positive);">
-      <h3>Convergence of Evidence</h3>
+      <h3>4.4 Convergence of Evidence</h3>
       <p>Our data, the qualitative research, and the international precedent all point to the same conclusion:</p>
       <ul>
         <li>The <strong>R&sup2; wall</strong> (~82% unexplained) = unmeasured barriers</li>
@@ -3716,11 +3717,11 @@
 <!-- Section 5: Ruled Out (Q3 + Q4 combined) -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <div class="section" id="ruled-out">
-  <h2 class="section-title">It's Not the War. It's Not the Distance.</h2>
+  <h2 class="section-title">5. It's Not the War. It's Not the Distance.</h2>
   <p class="section-subtitle">Two alternative explanations tested and rejected: the Swords of Iron conflict and physical distance to NII branches.</p>
 
   <!-- Subsection A: Q3 Swords of Iron -->
-  <h3 style="font-size:1.15rem;font-weight:600;margin:0 0 12px;"><span class="q-badge">Research Question 3</span> Did the Conflict Create a Disability Crisis?</h3>
+  <h3 style="font-size:1.15rem;font-weight:600;margin:0 0 12px;">5.1 <span class="q-badge">Research Question 3</span> Did the Conflict Create a Disability Crisis?</h3>
 
   <div class="kpi-row">
     <div class="kpi-card">
@@ -3736,7 +3737,7 @@
   </div>
 
   <div class="chart-card">
-    <div class="chart-title">Disability Benefit Rate: Frontline (4 settlements) vs Non-Frontline (185 settlements)</div>
+    <div class="chart-title">5.2 Disability Benefit Rate: Frontline (4 settlements) vs Non-Frontline (185 settlements)</div>
     <div class="chart-annotation">Rates rose everywhere, not just in conflict zones. The trend is structural, not crisis-driven.</div>
     <div class="chart-wrap"><canvas id="chart_temporal"></canvas></div>
   </div>
@@ -3748,11 +3749,11 @@
   </div>
 
   <!-- Subsection B: Q4 Distance -->
-  <h3 style="font-size:1.15rem;font-weight:600;margin:24px 0 12px;"><span class="q-badge">Research Question 4</span> Is Physical Distance the Barrier?</h3>
+  <h3 style="font-size:1.15rem;font-weight:600;margin:24px 0 12px;">5.3 <span class="q-badge">Research Question 4</span> Is Physical Distance the Barrier?</h3>
 
   <div class="chart-card">
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:4px;flex-wrap:wrap;">
-      <div class="chart-title" id="dist_chart_title" style="margin-bottom:0;">Disability Rate vs Distance to Nearest NII Branch (km)</div>
+      <div class="chart-title" id="dist_chart_title" style="margin-bottom:0;">5.4 Disability Rate vs Distance to Nearest NII Branch (km)</div>
       <select id="dist_type_select" onchange="updateDistanceChart()" style="padding:6px 12px;border-radius:6px;border:1px solid #dee2e6;font-size:0.85rem;background:#fff;cursor:pointer;">
         <option value="dist_any">Any BTL Branch</option>
         <option value="dist_central">Central Branch</option>
@@ -3763,7 +3764,7 @@
   </div>
 
   <div class="chart-card">
-    <div class="chart-title">Same Scale Comparison: SES (slope -1.14) vs Distance (slope -0.82)</div>
+    <div class="chart-title">5.5 Same Scale Comparison: SES (slope -1.14) vs Distance (slope -0.82)</div>
     <div class="chart-annotation">SES is a strong predictor; distance is nearly flat.</div>
     <div class="chart-wrap"><canvas id="chart_trend_lines"></canvas></div>
   </div>
@@ -3778,17 +3779,17 @@
 <!-- Section 6: What Drives Disability -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <div class="section" id="drivers">
-  <h2 class="section-title">Income Support Is the Strongest Driver of Disability Rates</h2>
+  <h2 class="section-title">6. Income Support Is the Strongest Driver of Disability Rates</h2>
   <p class="section-subtitle">Knowing what drives disability tells us what to target. Two complementary views: Linear Regression shows direction (increases vs decreases), tree models show magnitude.</p>
 
   <div class="card-grid">
     <div class="chart-card">
-      <div class="chart-title">Linear Regression: Which Factors Increase or Decrease Disability?</div>
+      <div class="chart-title">6.1 Linear Regression: Which Factors Increase or Decrease Disability?</div>
       <div class="chart-annotation"><strong style="color:#C44E52;">Red bars</strong> = factor increases disability rate. <strong style="color:#4C72B0;">Blue bars</strong> = factor decreases it. Income support is the strongest positive driver; salary is the strongest negative. R&sup2; = 0.677.</div>
       <div class="chart-wrap hbar"><canvas id="chart_ols_coeff"></canvas></div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">Tree Models: Which Factors Matter Most?</div>
+      <div class="chart-title">6.2 Tree Models: Which Factors Matter Most?</div>
       <div class="chart-annotation">Importance regardless of direction. Averaged across Random Forest + XGBoost. Best ensemble R&sup2; = 0.626.</div>
       <div class="chart-wrap hbar"><canvas id="chart_importance"></canvas></div>
     </div>
@@ -3803,30 +3804,132 @@
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════════ -->
-<!-- Section 7: Action Plan -->
+<!-- Section 7: Interaction Effects -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<div class="section" id="interactions">
+  <h2 class="section-title">7. Interaction Effects: When Context Changes the Rules</h2>
+  <p class="section-subtitle">In this section the <strong>dependent variable is the income support rate</strong> — the share of residents receiving income support benefits per settlement. Multivariate regression with interaction terms (inspired by O'Brien, 2019) shows that sector and geography moderate the relationship between labor market conditions and this rate — explaining 47% of variance, up from 34%.</p>
+
+  <div class="tldr-box">
+    <div class="tldr-label">Methodology: Z-Score Normalization</div>
+    <p>All continuous variables were standardized to <strong>Z-scores</strong> (mean = 0, SD = 1) before constructing interaction terms. This serves two purposes: (1) <strong>comparable coefficients</strong> — each coefficient represents the effect of a one-standard-deviation change, enabling direct comparison across variables with different units; (2) <strong>reduced multicollinearity</strong> — centering variables before multiplying them prevents the interaction term from being strongly correlated with its components.</p>
+  </div>
+
+  <!-- R² KPI row -->
+  <div class="kpi-row" style="margin-bottom:24px;">
+    <div class="kpi-card">
+      <div class="kpi-value neutral">0.336</div>
+      <div class="kpi-label">Baseline Adj. R²</div>
+      <div class="kpi-context">Unemployment, dependency ratio, peripherality, salary</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:var(--text-secondary);">0.357</div>
+      <div class="kpi-label">+Haredi × Unemp</div>
+      <div class="kpi-context">Interaction not significant — negligible gain</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:var(--color-2);">0.427</div>
+      <div class="kpi-label">+Periph Interactions</div>
+      <div class="kpi-context">dep×periph and salary×periph both p&lt;0.001</div>
+    </div>
+    <div class="kpi-card hero">
+      <div class="kpi-value solution">0.470</div>
+      <div class="kpi-label">+Arab × Unemp</div>
+      <div class="kpi-context">Best model — +40% relative gain over baseline</div>
+    </div>
+  </div>
+
+  <!-- Interaction coefficients table -->
+  <div class="data-table-wrap" style="margin-bottom:24px;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Interaction Term</th>
+          <th>Coefficient (&beta;, standardized)</th>
+          <th>p-value</th>
+          <th>Significance</th>
+          <th>Interpretation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Peripherality &times; Dependency Ratio</strong></td>
+          <td style="color:var(--negative);font-weight:600;">&minus;0.327</td>
+          <td>&lt;0.001</td>
+          <td>*** highly significant</td>
+          <td>Peripherality amplifies the dependency effect — need intensifies uptake at the margins</td>
+        </tr>
+        <tr>
+          <td><strong>Log-Salary &times; Peripherality</strong></td>
+          <td style="color:var(--positive);font-weight:600;">+0.267</td>
+          <td>&lt;0.001</td>
+          <td>*** highly significant</td>
+          <td>Higher wages partially buffer the peripherality disadvantage</td>
+        </tr>
+        <tr>
+          <td><strong>Arab Sector &times; Unemployment</strong></td>
+          <td style="color:var(--negative);font-weight:600;">&minus;0.297</td>
+          <td>&lt;0.001</td>
+          <td>*** highly significant</td>
+          <td>Unemployment&ndash;benefit link is significantly weaker in Arab-majority settlements</td>
+        </tr>
+        <tr>
+          <td><strong>Haredi Sector &times; Unemployment</strong></td>
+          <td style="color:var(--text-secondary);">+0.019</td>
+          <td>0.773</td>
+          <td>&mdash; not significant</td>
+          <td>No differential unemployment effect detected in Haredi settlements</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Three insight cards -->
+  <div class="card-grid three">
+    <div class="card">
+      <h3>Insight 1: The Periphery Trap</h3>
+      <p>The interaction between <strong>peripherality and dependency ratio</strong> carries a standardized coefficient of <strong>&minus;0.327</strong> (p &lt; 0.001). In peripheral settlements with high dependency loads, income support rates are <em>higher</em> than the baseline model predicts — exactly as the burden of need would suggest. Peripherality does not simply add to disadvantage; it <em>multiplies</em> it, amplifying and intensifying the dependency burden precisely where dependent populations are most concentrated.</p>
+    </div>
+    <div class="card">
+      <h3>Insight 2: The Arab Sector Paradox</h3>
+      <p>In the general population, higher unemployment predicts higher income support uptake. In <strong>Arab-majority settlements</strong>, this relationship is significantly <em>weaker</em>: the Arab&nbsp;&times;&nbsp;Unemployment interaction is <strong>&minus;0.297</strong> (p &lt; 0.001). This is consistent with the institutional barriers documented elsewhere in this research — language barriers, limited digital access, and reduced NII outreach — which decouple economic need from actual benefit receipt. Unemployment rises, but claims do not follow.</p>
+    </div>
+    <div class="card">
+      <h3>Insight 3: The Haredi Non-Finding</h3>
+      <p>Unlike the Arab sector, the <strong>Haredi&nbsp;&times;&nbsp;Unemployment interaction</strong> is <em>not statistically significant</em> (&beta;&nbsp;=&nbsp;0.019, p&nbsp;=&nbsp;0.773). Within Haredi communities the standard unemployment&ndash;income support relationship operates similarly to the general population. Distinct patterns observed for Haredi settlements in other analyses are therefore not driven by a differential sensitivity to unemployment, pointing toward structural or cultural factors operating through different channels.</p>
+    </div>
+  </div>
+
+  <div class="insight-callout" style="margin-top:24px;">
+    <strong>Bottom line:</strong> Interaction modeling raises explained variance from 33.6% to 47.0% — a <strong>40% relative improvement</strong>. The Arab sector and periphery interactions are not statistical artifacts; they reflect real structural conditions that standard main-effects models miss entirely, and have direct implications for where targeted outreach will matter most.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- Section 8: Action Plan -->
 <!-- ════════════════════════════════════════════════════════════════════════ -->
 <div class="section" id="action">
-  <h2 class="section-title">Five Actions to Close the Gap</h2>
+  <h2 class="section-title">8. Five Actions to Close the Gap</h2>
   <p class="section-subtitle">Each recommendation is tied to specific findings from this research.</p>
 
   <div class="rec-grid">
     <div class="rec-card">
       <div class="rec-num">1</div>
-      <h4>Targeted Outreach in 17 Flagged Settlements</h4>
+      <h4>8.1 Targeted Outreach in 17 Flagged Settlements</h4>
       <p><strong>From Q1:</strong> the 17 flagged settlements should receive proactive information
       campaigns &mdash; in Arabic, with community-based intermediaries and local
       advocacy organizations. 6% are Arab-majority.</p>
     </div>
     <div class="rec-card">
       <div class="rec-num">2</div>
-      <h4>Simplify the Process</h4>
+      <h4>8.2 Simplify the Process</h4>
       <p><strong>From The Wall:</strong> Bhargava &amp; Manoli (2015) showed simplifying benefit language
       increased claiming by 6-8 pp. Show estimated benefit amounts, use plain language, reduce paperwork.
       35% of approved beneficiaries never exercised eligibility.</p>
     </div>
     <div class="rec-card">
       <div class="rec-num">3</div>
-      <h4>Arabic-Language Services at NII</h4>
+      <h4>8.3 Arabic-Language Services at NII</h4>
       <p><strong>From The Wall:</strong> Alhuzeel (2023) identified multi-level barriers —
       Hebrew-only forms, excessive bureaucracy, and lack of Arabic-language information about rights.
       Ensure medical committees include Arabic-speaking professionals.
@@ -3834,14 +3937,14 @@
     </div>
     <div class="rec-card">
       <div class="rec-num">4</div>
-      <h4>Break the Intergenerational Cycle</h4>
+      <h4>8.4 Break the Intergenerational Cycle</h4>
       <p><strong>From Q2:</strong> settlements flagged for both child and adult disability (&rho; = 0.461)
       need integrated family-level interventions, not separate programs.
       The pattern persists even in affluent areas (&rho; = 0.715 in the center).</p>
     </div>
     <div class="rec-card">
       <div class="rec-num">5</div>
-      <h4>Annual Monitoring Dashboard</h4>
+      <h4>8.5 Annual Monitoring Dashboard</h4>
       <p><strong>From Q3:</strong> re-run the model annually. Settlements with persistent positive gaps
       across multiple years should be prioritized for field investigation.
       Track frontline communities (4 settlements) for post-conflict effects.</p>
