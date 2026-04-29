@@ -3867,6 +3867,111 @@
 
   <p style="margin:12px 0 20px;color:var(--text-secondary);font-size:0.9rem;line-height:1.7;">The graph shows a negative correlation between distance to National Insurance branches and disability benefit rates when considering distance to any branch (Pearson r&asymp;&minus;0.34), but almost no relationship when considering distance to a central branch only (r&asymp;0.01). These findings indicate a moderate relationship that depends on how accessibility is defined, and likely reflects underlying socio-economic differences rather than a direct effect of distance.</p>
 
+  <div class="chart-card" style="overflow-x:auto;">
+    <div class="chart-title">5.4b OLS Regression: Distance to Medical Board Controlling for Socio-Economic Variables</div>
+    <div class="chart-annotation">Dependent variable: general disability rate. The key variable of interest is <strong>dist_central_branch_km</strong> (distance to nearest medical committee / central NII branch). Controls: labor participation, log salary, income support rate, dependency ratio, Arab-majority, Haredi-majority localities.</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem;font-family:monospace;margin-top:10px;">
+      <thead>
+        <tr style="border-top:2px solid #dee2e6;border-bottom:1px solid #dee2e6;background:#f8f9fa;">
+          <th style="text-align:left;padding:8px 12px;">Variable</th>
+          <th style="text-align:right;padding:8px 12px;">Coef.</th>
+          <th style="text-align:right;padding:8px 12px;">Std Err</th>
+          <th style="text-align:right;padding:8px 12px;">z</th>
+          <th style="text-align:right;padding:8px 12px;">P&gt;|z|</th>
+          <th style="text-align:right;padding:8px 12px;">[0.025</th>
+          <th style="text-align:right;padding:8px 12px;">0.975]</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:7px 12px;">const</td>
+          <td style="text-align:right;padding:7px 12px;">74.760</td>
+          <td style="text-align:right;padding:7px 12px;">6.421</td>
+          <td style="text-align:right;padding:7px 12px;">11.643</td>
+          <td style="text-align:right;padding:7px 12px;font-weight:600;">0.000</td>
+          <td style="text-align:right;padding:7px 12px;">62.174</td>
+          <td style="text-align:right;padding:7px 12px;">87.345</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;background:#fffbe6;">
+          <td style="padding:7px 12px;font-weight:700;">dist_central_branch_km</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.0054</td>
+          <td style="text-align:right;padding:7px 12px;">0.013</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.432</td>
+          <td style="text-align:right;padding:7px 12px;color:#999;">0.666</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.030</td>
+          <td style="text-align:right;padding:7px 12px;">0.019</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:7px 12px;">labor_participation</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.1376</td>
+          <td style="text-align:right;padding:7px 12px;">0.046</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;3.011</td>
+          <td style="text-align:right;padding:7px 12px;font-weight:600;">0.003</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.227</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.048</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:7px 12px;">log_salary</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;5.6499</td>
+          <td style="text-align:right;padding:7px 12px;">0.527</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;10.725</td>
+          <td style="text-align:right;padding:7px 12px;font-weight:600;">0.000</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;6.682</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;4.617</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:7px 12px;">income_support_rate</td>
+          <td style="text-align:right;padding:7px 12px;">0.0930</td>
+          <td style="text-align:right;padding:7px 12px;">0.201</td>
+          <td style="text-align:right;padding:7px 12px;">0.462</td>
+          <td style="text-align:right;padding:7px 12px;color:#999;">0.644</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.301</td>
+          <td style="text-align:right;padding:7px 12px;">0.487</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:7px 12px;">dependency_ratio</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.0484</td>
+          <td style="text-align:right;padding:7px 12px;">0.006</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;7.776</td>
+          <td style="text-align:right;padding:7px 12px;font-weight:600;">0.000</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.061</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.036</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f0f0f0;">
+          <td style="padding:7px 12px;">is_arab</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;2.8397</td>
+          <td style="text-align:right;padding:7px 12px;">0.425</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;6.681</td>
+          <td style="text-align:right;padding:7px 12px;font-weight:600;">0.000</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;3.673</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;2.007</td>
+        </tr>
+        <tr style="border-bottom:2px solid #dee2e6;">
+          <td style="padding:7px 12px;">is_haredi</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.4542</td>
+          <td style="text-align:right;padding:7px 12px;">0.815</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;0.557</td>
+          <td style="text-align:right;padding:7px 12px;color:#999;">0.577</td>
+          <td style="text-align:right;padding:7px 12px;">&minus;2.052</td>
+          <td style="text-align:right;padding:7px 12px;">1.144</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:10px;font-size:0.78rem;color:var(--text-secondary);line-height:1.8;">
+      Omnibus: 29.370 &nbsp;|&nbsp; Prob(Omnibus): 0.000 &nbsp;|&nbsp; Durbin-Watson: 1.796 &nbsp;|&nbsp; Jarque-Bera (JB): 111.614
+    </div>
+  </div>
+
+  <div class="insight-callout" style="border-left-color:#e67e22;">
+    <strong>Answer to Research Question 4:</strong>
+    The hypothesis predicts that <code>dist_central_branch_km</code> will carry a negative and statistically significant coefficient.
+    The coefficient is indeed negative (β&nbsp;=&nbsp;&minus;0.005), consistent with the hypothesized direction, <strong>but it is not statistically significant</strong> (p&nbsp;=&nbsp;0.666; 95%&nbsp;CI: &minus;0.030 to +0.019).
+    The confidence interval straddles zero, meaning we cannot distinguish the effect from chance.
+    Once salary, dependency ratio, labour participation, and population composition are held constant, geographical distance to medical committee centres explains <strong>no independent variance</strong> in the disability benefit rate.
+    <br><br>
+    <strong>Conclusion:</strong> The research hypothesis is not supported. Distance is not a meaningful barrier to claiming disability benefits once structural socio-economic conditions are controlled. The bottleneck lies elsewhere — in information, language, bureaucratic capacity, and institutional trust — not in kilometres to the nearest branch.
+  </div>
+
   <div class="chart-card">
     <div class="chart-title">5.5 Same Scale Comparison: SES (slope -1.14) vs Distance (slope -0.82)</div>
     <div class="chart-annotation">SES is a strong predictor; distance is nearly flat.</div>
